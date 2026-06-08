@@ -1,6 +1,6 @@
 # AgendaZap
 
-SaaS de agendamento online para `https://agendazapuap.com.br`, com API em `https://api.agendazapuap.com.br`.
+SaaS de agendamento online para `https://www.agendazapuap.com.br`, com API em `https://api.agendazapuap.com.br`.
 
 ## Stack
 

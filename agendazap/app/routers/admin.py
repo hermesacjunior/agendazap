@@ -36,7 +36,7 @@ from app.services.whatsapp_service import (
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 logger = logging.getLogger(__name__)
-APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://agendazapuap.com.br")).rstrip("/")
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

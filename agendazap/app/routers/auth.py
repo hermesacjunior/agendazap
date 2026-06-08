@@ -142,7 +142,7 @@ async def forgot_password(request: Request, email: str = Form(...)):
     email = email.strip().lower()
     sent = False
     if supabase_is_configured():
-        redirect_to = f"{os.getenv('APP_URL', 'https://agendazapuap.com.br').rstrip('/')}/auth/login"
+        redirect_to = f"{os.getenv('APP_URL', 'https://www.agendazapuap.com.br').rstrip('/')}/auth/login"
         sent = await send_password_recovery(email, redirect_to)
 
     return templates.TemplateResponse("auth/forgot_password.html", {

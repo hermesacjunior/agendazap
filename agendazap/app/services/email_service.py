@@ -10,7 +10,7 @@ load_dotenv()
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "AgendaZap <noreply@agendazap.com.br>")
-APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://agendazapuap.com.br"))
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br"))
 
 
 def _is_configured(value: str, placeholder_prefixes: tuple[str, ...] = ()) -> bool:

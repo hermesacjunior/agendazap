@@ -17,7 +17,7 @@ from app.services.auth_service import create_access_token, get_current_user, get
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
 
 router = APIRouter(prefix="/api")
-APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://agendazapuap.com.br")).rstrip("/")
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 
 
 class ProfileUpdate(BaseModel):
@@ -160,7 +160,7 @@ async def api_register(payload: AuthRegister, db: AsyncSession = Depends(get_db)
 async def api_recover_password(payload: AuthRecover):
     sent = False
     if supabase_is_configured():
-        redirect_to = f"{os.getenv('APP_URL', 'https://agendazapuap.com.br').rstrip('/')}/auth/login"
+        redirect_to = f"{os.getenv('APP_URL', 'https://www.agendazapuap.com.br').rstrip('/')}/auth/login"
         sent = await send_password_recovery(payload.email.lower(), redirect_to)
     return {"ok": True, "configured": sent}
 

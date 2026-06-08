@@ -23,7 +23,7 @@ def _csv_env(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
 
 
-APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://agendazapuap.com.br")).rstrip("/")
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 ALLOWED_ORIGINS = _csv_env("ALLOWED_ORIGINS", APP_URL)
 ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "agendazapuap.com.br,www.agendazapuap.com.br,api.agendazapuap.com.br")

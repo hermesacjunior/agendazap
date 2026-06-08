@@ -8,7 +8,7 @@
     :root {
       color-scheme: light;
       font-family: Inter, Arial, sans-serif;
-      background: #f7f8fb;
+      background: #f6f8fb;
       color: #18202f;
     }
     body {
@@ -19,29 +19,29 @@
       padding: 28px;
     }
     main {
-      width: min(680px, 100%);
+      width: min(760px, 100%);
       background: #fff;
       border: 1px solid #dde3ee;
       border-radius: 8px;
       padding: 34px;
       box-shadow: 0 18px 48px rgba(24, 32, 47, 0.08);
     }
-    h1 {
-      margin: 0 0 12px;
-      font-size: clamp(30px, 7vw, 46px);
-      line-height: 1.05;
+    .brand {
+      margin: 0 0 10px;
+      font-size: clamp(34px, 7vw, 54px);
+      line-height: 1.04;
       letter-spacing: 0;
     }
-    p {
-      margin: 0 0 18px;
+    .lead {
+      margin: 0 0 24px;
       color: #536174;
-      font-size: 17px;
+      font-size: 18px;
       line-height: 1.55;
+      max-width: 620px;
     }
     .status {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
       margin-bottom: 22px;
       padding: 8px 12px;
       border-radius: 999px;
@@ -50,50 +50,36 @@
       font-weight: 700;
       font-size: 14px;
     }
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 26px;
+    .panel {
+      display: grid;
+      gap: 10px;
+      margin-top: 22px;
+      padding-top: 22px;
+      border-top: 1px solid #e3e8f0;
+      color: #4d5b70;
+      line-height: 1.5;
     }
-    a {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 0 16px;
-      border-radius: 6px;
-      text-decoration: none;
+    .label {
+      color: #1f2937;
       font-weight: 700;
     }
-    .primary {
-      background: #1f6feb;
-      color: #fff;
-    }
-    .secondary {
-      border: 1px solid #c7d0df;
-      color: #253248;
-      background: #fff;
-    }
-    small {
-      display: block;
-      margin-top: 24px;
-      color: #6a7688;
-      line-height: 1.5;
+    a {
+      color: #1f6feb;
+      font-weight: 700;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
   <main>
-    <div class="status">Site online</div>
-    <h1>AgendaZap</h1>
-    <p>O frontend da Vercel esta funcionando. A area completa do sistema sera liberada assim que o backend/API estiver hospedado e o DNS de API estiver ativo.</p>
-    <p>Proximo passo tecnico: publicar o backend no Railway e apontar <strong>api.agendazapuap.com.br</strong> para o dominio gerado pelo Railway.</p>
-    <div class="actions">
-      <a class="primary" href="https://agendazapuap.com.br">Dominio principal</a>
-      <a class="secondary" href="https://github.com/hermesacjunior/agendazap">Repositorio</a>
+    <div class="status">AgendaZap online</div>
+    <h1 class="brand">AgendaZap</h1>
+    <p class="lead">Sistema de agendamentos online em preparacao para o dominio oficial.</p>
+    <div class="panel">
+      <div><span class="label">Site principal:</span> <a href="https://www.agendazapuap.com.br">www.agendazapuap.com.br</a></div>
+      <div><span class="label">Ambiente atual:</span> Vercel</div>
+      <div><span class="label">Status:</span> frontend publicado; backend sera conectado na proxima etapa de deploy.</div>
     </div>
-    <small>Esta pagina temporaria evita o erro 502 enquanto a API ainda nao existe publicamente.</small>
   </main>
 </body>
 </html>
