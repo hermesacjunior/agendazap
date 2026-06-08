@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar com {{ profile.name }} — AgendaZap</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div class="booking-page">
+  <div class="booking-header">
+    <div class="booking-avatar">{{ profile.name[0].upper() }}</div>
+    <h1 class="booking-name">{{ profile.name }}</h1>
+    {% if profile.bio %}
+    <p class="booking-bio">{{ profile.bio }}</p>
+    {% endif %}
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px">
+      ⏱ {{ schedule.slot_duration }} minutos por sessão
+    </p>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error" style="max-width: 800px; width: 100%; margin-bottom: 16px">{{ error }}</div>
+  {% endif %}
+
+  {% if free_limit_reached %}
+  <div class="alert alert-info" style="max-width: 800px; width: 100%; margin-bottom: 16px">
+    Esta agenda gratuita ja possui 1 agendamento ativo.
+  </div>
+  {% endif %}
+
+  <div class="booking-container" id="bookingStep1">
+    <!-- Calendário -->
+    <div class="card">
+      <div class="calendar-header">
+        <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
+        <span class="calendar-title" id="calendarTitle"></span>
+        <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="calendar-day-header">Seg</div>
+        <div class="calendar-day-header">Ter</div>
+        <div class="calendar-day-header">Qua</div>
+        <div class="calendar-day-header">Qui</div>
+        <div class="calendar-day-header">Sex</div>
+        <div class="calendar-day-header">Sáb</div>
+        <div class="calendar-day-header">Dom</div>
+      </div>
+      <div class="calendar-grid" id="calendarDays"></div>
+    </div>
+
+    <!-- Horários + Form -->
+    <div>
+      <div class="card" id="slotsCard">
+        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Horários disponíveis</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px" id="selectedDateLabel">
+          Selecione uma data no calendário
+        </p>
+        <div id="slotsContainer">
+          <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px">
+            ← Selecione uma data
+          </div>
+        </div>
+      </div>
+
+      <!-- Form de agendamento (aparece após escolher horário) -->
+      <div class="card mt-4" id="bookingForm" style="display: none">
+        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Seus dados</h3>
+        <form method="POST" action="/b/{{ profile.slug }}/book">
+          <input type="hidden" name="date_str" id="selectedDate">
+          <input type="hidden" name="time_str" id="selectedTime">
+          <div class="form-group">
+            <label>Nome completo *</label>
+            <input type="text" name="client_name" required placeholder="Seu nome">
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" name="client_email" required placeholder="seu@email.com">
+          </div>
+          <div class="form-group">
+            <label>WhatsApp (opcional)</label>
+            <input type="text" name="client_whatsapp" placeholder="11999999999">
+          </div>
+          <div class="form-group">
+            <label>Observações</label>
+            <textarea name="notes" placeholder="Alguma informação adicional..."></textarea>
+          </div>
+          <div style="background: var(--bg-input); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 14px">
+            📅 <strong id="confirmDate"></strong> às <strong id="confirmTime"></strong>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full btn-lg">
+            ✅ Confirmar Agendamento
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size: 12px; color: var(--text-dim); margin-top: 32px">
+    Powered by <strong>AgendaZap</strong>
+  </p>
+</div>
+
+<script>
+const slug = "{{ profile.slug }}";
+let currentYear, currentMonth, selectedDate, selectedSlot;
+let availability = {};
+
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const today = new Date();
+
+function init() {
+  currentYear = today.getFullYear();
+  currentMonth = today.getMonth() + 1;
+  loadMonth(currentYear, currentMonth);
+}
+
+async function loadMonth(year, month) {
+  document.getElementById('calendarTitle').textContent = `${MONTHS[month-1]} ${year}`;
+  availability = {};
+
+  try {
+    const res = await fetch(`/b/${slug}/availability?year=${year}&month=${month}`);
+    const data = await res.json();
+    availability = data.availability || {};
+  } catch(e) {}
+
+  renderCalendar(year, month);
+}
+
+function renderCalendar(year, month) {
+  const grid = document.getElementById('calendarDays');
+  grid.innerHTML = '';
+
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  // Adjust: Monday=0 ... Sunday=6
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // Empty cells
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'calendar-day empty';
+    grid.appendChild(empty);
+  }
+
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cell = document.createElement('div');
+    cell.textContent = d;
+
+    const isPast = dateStr < todayStr;
+    const hasSlots = availability[d] === true;
+
+    if (dateStr === todayStr) cell.classList.add('today');
+
+    if (isPast) {
+      cell.className = 'calendar-day past';
+    } else if (hasSlots) {
+      cell.className = 'calendar-day available';
+      if (dateStr === selectedDate) cell.classList.add('selected');
+      cell.onclick = () => selectDate(dateStr, d, month, year);
+    } else {
+      cell.className = 'calendar-day unavailable';
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+async function selectDate(dateStr, d, month, year) {
+  selectedDate = dateStr;
+  selectedSlot = null;
+  document.getElementById('bookingForm').style.display = 'none';
+
+  renderCalendar(year, month);
+
+  const label = document.getElementById('selectedDateLabel');
+  const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  label.textContent = `${d} de ${MONTHS[month-1]}`;
+
+  const container = document.getElementById('slotsContainer');
+  container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted)">Carregando...</div>';
+
+  try {
+    const res = await fetch(`/b/${slug}/slots?date_str=${dateStr}`);
+    const data = await res.json();
+
+    if (!data.slots || data.slots.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:14px">Sem horários disponíveis neste dia</div>';
+      return;
+    }
+
+    container.innerHTML = '<div class="slots-grid"></div>';
+    const grid = container.querySelector('.slots-grid');
+
+    data.slots.forEach(slot => {
+      const btn = document.createElement('button');
+      btn.className = 'slot-btn';
+      btn.textContent = slot;
+      btn.type = 'button';
+      btn.onclick = () => selectSlot(slot, dateStr, d, month);
+      grid.appendChild(btn);
+    });
+  } catch(e) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--red)">Erro ao carregar horários</div>';
+  }
+}
+
+function selectSlot(slot, dateStr, d, month) {
+  selectedSlot = slot;
+
+  document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+
+  document.getElementById('selectedDate').value = dateStr;
+  document.getElementById('selectedTime').value = slot;
+  document.getElementById('confirmDate').textContent = `${d} de ${MONTHS[month-1]}`;
+  document.getElementById('confirmTime').textContent = slot;
+  document.getElementById('bookingForm').style.display = 'block';
+  document.getElementById('bookingForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  loadMonth(currentYear, currentMonth);
+}
+
+init();
+</script>
+</body>
+</html>

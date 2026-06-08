@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+{% block title %}Perfil — AgendaZap{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Perfil</h1>
+    <p class="page-subtitle">Suas informações pessoais</p>
+  </div>
+</div>
+
+{% if request.query_params.get('saved') %}
+<div class="alert alert-success">✅ Perfil atualizado!</div>
+{% endif %}
+
+<div class="grid-2" style="align-items: start">
+  <div class="card">
+    <form method="POST" action="/admin/profile">
+      <div class="form-group">
+        <label>Nome</label>
+        <input type="text" name="name" value="{{ user.name }}" required>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" value="{{ user.email }}" disabled style="opacity: 0.5">
+        <span style="font-size: 12px; color: var(--text-muted)">Email não pode ser alterado</span>
+      </div>
+      <div class="form-group">
+        <label>WhatsApp (com DDD)</label>
+        <input type="text" name="whatsapp" value="{{ user.whatsapp or '' }}" placeholder="11999999999">
+      </div>
+      <div class="form-group">
+        <label>Bio (aparece na sua página pública)</label>
+        <textarea name="bio" placeholder="Descreva brevemente o que você faz...">{{ user.bio or '' }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">💾 Salvar Perfil</button>
+    </form>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    <div class="card">
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">Seu Link Público</h3>
+      <div class="link-box">
+        <input type="text" id="linkInput" value="{{ app_url }}/b/{{ user.slug }}" readonly>
+        <button class="btn btn-sm btn-secondary" onclick="copyLink()">Copiar</button>
+      </div>
+      <a href="/b/{{ user.slug }}" target="_blank" class="btn btn-secondary btn-full mt-4" style="margin-top: 12px">
+        🔗 Visualizar Página Pública
+      </a>
+    </div>
+
+    <div class="card">
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">Conta</h3>
+      <div style="font-size: 14px; display: flex; flex-direction: column; gap: 8px">
+        <div class="flex justify-between">
+          <span style="color: var(--text-muted)">Plano</span>
+          <span class="badge badge-accent">{{ user.plan.value.capitalize() }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span style="color: var(--text-muted)">Membro desde</span>
+          <span>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyLink() {
+  const input = document.getElementById('linkInput');
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar', 2000);
+  });
+}
+</script>
+{% endblock %}

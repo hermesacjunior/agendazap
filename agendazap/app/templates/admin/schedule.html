@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+{% block title %}Configurar Agenda — AgendaZap{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Minha Agenda</h1>
+    <p class="page-subtitle">Configure seus horários de disponibilidade</p>
+  </div>
+</div>
+
+<form method="POST" action="/admin/schedule">
+  <div class="grid-2" style="align-items: start">
+    <div style="display: flex; flex-direction: column; gap: 16px">
+
+      <div class="card">
+        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Configurações Gerais</h3>
+
+        <div class="form-group">
+          <label>Nome da Agenda</label>
+          <input type="text" name="name" value="{{ schedule.name if schedule else 'Minha Agenda' }}" required>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Duração do Slot (minutos)</label>
+            <select name="slot_duration">
+              {% for dur in [15, 30, 45, 60, 90, 120] %}
+              <option value="{{ dur }}" {% if schedule and schedule.slot_duration == dur %}selected{% endif %}>
+                {{ dur }} min
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Intervalo entre slots (min)</label>
+            <select name="buffer_time">
+              {% for buf in [0, 10, 15, 30] %}
+              <option value="{{ buf }}" {% if schedule and schedule.buffer_time == buf %}selected{% endif %}>
+                {{ buf }} min
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Máximo de dias no futuro</label>
+          <select name="max_advance_days">
+            {% for days in [7, 14, 30, 60, 90] %}
+            <option value="{{ days }}" {% if schedule and schedule.max_advance_days == days %}selected{% endif %}>
+              {{ days }} dias
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Disponibilidade Semanal</h3>
+
+        {% set days = [('0', 'Segunda'), ('1', 'Terça'), ('2', 'Quarta'), ('3', 'Quinta'), ('4', 'Sexta'), ('5', 'Sábado'), ('6', 'Domingo')] %}
+        {% for day_num, day_name in days %}
+          {% set day_avail = schedule.weekly_availability.get(day_num, []) if schedule and schedule.weekly_availability else [] %}
+          {% set is_active = day_avail | length > 0 %}
+          {% set start = day_avail[0].start if is_active else '09:00' %}
+          {% set end = day_avail[0].end if is_active else '18:00' %}
+
+          <div class="day-row">
+            <div class="day-toggle">
+              <label class="toggle">
+                <input type="checkbox" name="day_{{ day_num }}" id="day{{ day_num }}" value="1"
+                  {% if is_active %}checked{% endif %}
+                  onchange="toggleDay('{{ day_num }}', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="day{{ day_num }}" style="font-size: 14px; cursor: pointer">{{ day_name }}</label>
+            </div>
+            <div class="day-times" id="times{{ day_num }}" style="{{ 'opacity:0.3; pointer-events:none' if not is_active }}">
+              <input type="time" name="start_{{ day_num }}" value="{{ start }}" style="width: 120px">
+              <span style="color: var(--text-muted)">até</span>
+              <input type="time" name="end_{{ day_num }}" value="{{ end }}" style="width: 120px">
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="position: sticky; top: 24px">
+      <div class="card">
+        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 8px">💡 Dicas</h3>
+        <ul style="font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px; padding-left: 16px">
+          <li>Slots são os intervalos disponíveis para agendamento</li>
+          <li>O intervalo é um tempo de folga entre cada atendimento</li>
+          <li>Clientes podem agendar até o limite de dias configurado</li>
+        </ul>
+
+        <div style="margin-top: 20px; padding: 16px; background: var(--bg-input); border-radius: 8px">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px">Seu link público:</p>
+          <code style="font-size: 12px; color: var(--accent); word-break: break-all">
+            {{ app_url }}/b/{{ user.slug }}
+          </code>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full mt-4" style="margin-top: 16px">
+        💾 Salvar Configurações
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleDay(day, enabled) {
+  const times = document.getElementById('times' + day);
+  times.style.opacity = enabled ? '1' : '0.3';
+  times.style.pointerEvents = enabled ? 'auto' : 'none';
+}
+</script>
+{% endblock %}

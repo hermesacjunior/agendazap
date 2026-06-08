@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendamento Confirmado - AgendaZap</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div class="booking-page">
+  <div class="auth-card" style="text-align: center; max-width: 480px">
+    <div style="font-size: 64px; margin-bottom: 16px">OK</div>
+    <h1 style="font-family: 'Syne', sans-serif; font-size: 26px; margin-bottom: 8px">
+      Agendamento confirmado
+    </h1>
+    <p style="color: var(--text-muted); margin-bottom: 24px">
+      Ola, <strong>{{ client_name }}</strong>. Seu horario foi cadastrado com sucesso.
+    </p>
+
+    <div style="background: var(--bg-input); border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: left">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div class="flex justify-between">
+          <span style="color: var(--text-muted); font-size: 14px">Com</span>
+          <span style="font-weight: 500; font-size: 14px">{{ profile.name if profile else '-' }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span style="color: var(--text-muted); font-size: 14px">Data</span>
+          <span style="font-weight: 500; font-size: 14px">{{ date }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span style="color: var(--text-muted); font-size: 14px">Horario</span>
+          <span style="font-weight: 500; font-size: 14px">{{ time }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-info" style="text-align: left; margin-bottom: 20px">
+      Seu horario foi cadastrado.
+    </div>
+
+    <a href="/b/{{ profile.slug if profile else '' }}" class="btn btn-secondary btn-full">
+      Fazer outro agendamento
+    </a>
+  </div>
+
+  <p style="font-size: 12px; color: var(--text-dim); margin-top: 32px">
+    Powered by <strong>AgendaZap</strong>
+  </p>
+</div>
+</body>
+</html>

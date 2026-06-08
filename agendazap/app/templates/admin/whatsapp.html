@@ -1,0 +1,218 @@
+{% extends "admin/base.html" %}
+{% block title %}WhatsApp — AgendaZap{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Conectar WhatsApp</h1>
+    <p class="page-subtitle">Receba notificações instantâneas de novos agendamentos</p>
+  </div>
+</div>
+
+{% if user.plan.value in ['free', 'basic'] %}
+<div class="alert alert-info">
+  💎 Notificações via WhatsApp estão disponíveis no plano <strong>Pro</strong>.
+  <a href="/plans/" style="color: var(--accent); font-weight: 600; margin-left: 8px">Fazer upgrade →</a>
+</div>
+{% endif %}
+
+<div class="grid-2" style="align-items: start">
+  <div class="card">
+    {% if is_connected %}
+    <div style="text-align: center; padding: 32px">
+      <div style="font-size: 48px; margin-bottom: 16px">✅</div>
+      <h3 style="font-family: 'Syne', sans-serif; font-size: 20px; color: var(--green)">WhatsApp Conectado!</h3>
+      <p style="color: var(--text-muted); margin-top: 8px; font-size: 14px">
+        Seu WhatsApp está ativo. Você receberá notificações automáticas de novos agendamentos.
+      </p>
+      {% if user.whatsapp %}
+      <div style="margin-top: 16px; padding: 12px; background: var(--green-bg); border-radius: 8px; font-size: 14px">
+        📱 Número: <strong>{{ user.whatsapp }}</strong>
+      </div>
+      {% endif %}
+      <button onclick="disconnectWhatsApp()" class="btn btn-danger btn-sm" style="margin-top: 20px">
+        Desconectar
+      </button>
+    </div>
+    {% else %}
+    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Conectar via QR Code</h3>
+    <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px">
+      Clique no botão abaixo, escaneie o QR Code com seu WhatsApp e pronto — você receberá notificações instantâneas.
+    </p>
+
+    <div style="margin-bottom: 18px">
+      <label style="display:block; font-size:13px; color: var(--text-muted); margin-bottom: 8px">Numero do WhatsApp</label>
+      <input id="whatsappNumber" type="text" value="{{ user.whatsapp or '' }}" placeholder="5511999999999" style="width:100%">
+    </div>
+
+    <div id="qrArea" style="display: none">
+      <div class="qr-container">
+        <p style="font-size: 13px; color: var(--text-muted)">
+          Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo
+        </p>
+        <div id="pairingCodeArea" style="display:none; width:100%; padding: 12px; background: var(--accent-glow); border: 1px solid var(--accent); border-radius: 8px; text-align:center">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px">Codigo de pareamento</div>
+          <div id="pairingCode" style="font-family: monospace; font-size: 22px; font-weight: 700; letter-spacing: 1px"></div>
+        </div>
+        <div class="qr-image" id="qrImageContainer">
+          <div id="qrLoading" style="color: var(--text-muted); font-size: 13px">Carregando...</div>
+          <img id="qrImage" style="display:none; width: 100%; height: 100%;" alt="QR Code WhatsApp">
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted)">QR Code expira em 60 segundos</p>
+        <div id="statusCheck" style="font-size: 13px; color: var(--text-muted)">Aguardando conexão...</div>
+        <button id="resetBtn" onclick="resetWhatsApp()" class="btn btn-secondary btn-sm" style="display:none; margin-top: 14px">
+          Recriar QR Code
+        </button>
+      </div>
+    </div>
+
+    <div id="connectBtn">
+      <button onclick="connectWhatsApp()" class="btn btn-primary btn-full"
+        {% if user.plan.value in ['free', 'basic'] %}disabled style="opacity: 0.5; cursor: not-allowed"{% endif %}>
+        📱 Gerar QR Code
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    <div class="card">
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">Como funciona</h3>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        {% for step, desc in [('1', 'Clique em "Gerar QR Code"'), ('2', 'Escaneie com seu WhatsApp'), ('3', 'Aguarde a confirmação'), ('4', 'Pronto! Você já recebe notificações')] %}
+        <div style="display: flex; gap: 12px; align-items: flex-start">
+          <div style="width: 28px; height: 28px; background: var(--accent-glow); border: 1px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--accent); flex-shrink: 0">{{ step }}</div>
+          <p style="font-size: 14px; padding-top: 4px">{{ desc }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">O que você recebe</h3>
+      <ul style="font-size: 14px; display: flex; flex-direction: column; gap: 8px; list-style: none">
+        <li>📅 Notificação de novo agendamento</li>
+        <li>❌ Notificação de cancelamento</li>
+        <li>⏰ Lembrete antes do horário</li>
+        <li>📱 Clientes também recebem confirmação</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let statusInterval = null;
+let statusStartedAt = null;
+let statusAttempts = 0;
+
+async function connectWhatsApp() {
+  document.getElementById('connectBtn').style.display = 'none';
+  document.getElementById('qrArea').style.display = 'block';
+  document.getElementById('statusCheck').textContent = 'Gerando QR Code...';
+  document.getElementById('resetBtn').style.display = 'none';
+  document.getElementById('pairingCodeArea').style.display = 'none';
+
+  try {
+    const formData = new FormData();
+    formData.append('whatsapp', document.getElementById('whatsappNumber').value.trim());
+    const res = await fetch('/admin/whatsapp/connect', { method: 'POST', body: formData });
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Sessao expirada. Entre novamente e tente gerar o QR Code.');
+    }
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || 'Erro ao gerar QR Code.');
+    }
+
+    if (data.qrcode) {
+      document.getElementById('qrLoading').style.display = 'none';
+      const img = document.getElementById('qrImage');
+      img.src = data.qrcode.startsWith('data:') ? data.qrcode : `data:image/png;base64,${data.qrcode}`;
+      img.style.display = 'block';
+      document.getElementById('statusCheck').textContent = 'Aguardando leitura do QR Code...';
+      if (data.pairing_code) {
+        document.getElementById('pairingCode').textContent = data.pairing_code;
+        document.getElementById('pairingCodeArea').style.display = 'block';
+      }
+      startStatusCheck();
+    } else {
+      throw new Error('A Evolution API nao retornou QR Code. Tente novamente em alguns segundos.');
+    }
+  } catch (e) {
+    document.getElementById('qrLoading').textContent = e.message || 'Erro ao gerar QR Code. Verifique a configuracao da Evolution API.';
+    document.getElementById('statusCheck').textContent = '';
+    document.getElementById('resetBtn').style.display = 'inline-flex';
+  }
+}
+
+function startStatusCheck() {
+  clearInterval(statusInterval);
+  statusStartedAt = Date.now();
+  statusAttempts = 0;
+  statusInterval = setInterval(async () => {
+    try {
+      const res = await fetch('/admin/whatsapp/status');
+      const data = await res.json();
+      if (data.connected) {
+        clearInterval(statusInterval);
+        window.location.reload();
+        return;
+      }
+
+      statusAttempts += 1;
+      const elapsedSeconds = Math.floor((Date.now() - statusStartedAt) / 1000);
+      const stateLabel = data.state || 'desconhecido';
+      const statusText = stateLabel === 'connecting'
+        ? 'QR Code lido. Finalizando conexao com a Evolution API...'
+        : `Estado atual: ${stateLabel}`;
+      document.getElementById('statusCheck').textContent = statusText;
+
+      if (elapsedSeconds >= 75 || statusAttempts >= 25 || stateLabel === 'close') {
+        clearInterval(statusInterval);
+        document.getElementById('statusCheck').textContent =
+          'A conexao ficou presa na Evolution API. Recrie o QR Code e tente parear novamente.';
+        document.getElementById('resetBtn').style.display = 'inline-flex';
+      }
+    } catch (e) {
+      document.getElementById('statusCheck').textContent = 'Nao foi possivel verificar o status. Tentando novamente...';
+    }
+  }, 3000);
+}
+
+async function disconnectWhatsApp() {
+  if (confirm('Deseja desconectar o WhatsApp?')) {
+    await resetWhatsApp();
+  }
+}
+
+async function resetWhatsApp() {
+  clearInterval(statusInterval);
+  const status = document.getElementById('statusCheck');
+  const resetBtn = document.getElementById('resetBtn');
+  resetBtn.disabled = true;
+  status.textContent = 'Recriando instancia...';
+
+  try {
+    const res = await fetch('/admin/whatsapp/reset', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || 'Erro ao recriar instancia.');
+    }
+
+    document.getElementById('qrLoading').style.display = 'block';
+    document.getElementById('qrLoading').textContent = 'Carregando...';
+    document.getElementById('qrImage').style.display = 'none';
+    document.getElementById('pairingCodeArea').style.display = 'none';
+    resetBtn.style.display = 'none';
+    resetBtn.disabled = false;
+    await connectWhatsApp();
+  } catch (e) {
+    status.textContent = e.message || 'Erro ao recriar instancia.';
+    resetBtn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

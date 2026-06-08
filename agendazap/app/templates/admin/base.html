@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AgendaZap{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">📅</div>
+        <span>AgendaZap</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin/dashboard" class="nav-item {% if request.url.path == '/admin/dashboard' %}active{% endif %}">
+          <span class="nav-icon">⊞</span> Dashboard
+        </a>
+        <a href="/admin/schedule" class="nav-item {% if '/schedule' in request.url.path %}active{% endif %}">
+          <span class="nav-icon">📅</span> Minha Agenda
+        </a>
+        <a href="/admin/bookings" class="nav-item {% if '/bookings' in request.url.path %}active{% endif %}">
+          <span class="nav-icon">📋</span> Agendamentos
+        </a>
+        <a href="/admin/whatsapp" class="nav-item {% if '/whatsapp' in request.url.path %}active{% endif %}">
+          <span class="nav-icon">💬</span> WhatsApp
+          {% if user.whatsapp_connected %}
+            <span class="badge badge-green" style="margin-left:auto">●</span>
+          {% else %}
+            <span class="badge badge-red" style="margin-left:auto">●</span>
+          {% endif %}
+        </a>
+        <a href="/plans/" class="nav-item {% if '/plans' in request.url.path %}active{% endif %}">
+          <span class="nav-icon">💎</span> Planos
+        </a>
+        <a href="/admin/profile" class="nav-item {% if '/profile' in request.url.path %}active{% endif %}">
+          <span class="nav-icon">👤</span> Perfil
+        </a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="user-pill">
+          <div class="user-avatar">{{ user.name[0].upper() }}</div>
+          <div class="user-info">
+            <div class="user-name">{{ user.name }}</div>
+            <div class="user-plan">Plano {{ user.plan.value.capitalize() }}</div>
+          </div>
+        </div>
+        <a href="/auth/logout" class="nav-item mt-4" style="color: var(--red)">
+          <span class="nav-icon">↪</span> Sair
+        </a>
+      </div>
+    </aside>
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

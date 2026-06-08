@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Evolution API — WhatsApp
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: agendazap-evolution
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-https://api.agendazapuap.com.br}
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${WHATSAPP_API_KEY:?configure WHATSAPP_API_KEY}
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:evolution123@postgres-evolution:5432/evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=false
+      - DATABASE_SAVE_MESSAGE_UPDATE=false
+      - DATABASE_SAVE_DATA_CONTACTS=false
+      - DATABASE_SAVE_DATA_CHATS=false
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis-evolution:6379/6
+      - CACHE_REDIS_PREFIX_KEY=agendazap
+      - CACHE_REDIS_SAVE_INSTANCES=false
+      - CACHE_LOCAL_ENABLED=false
+      - QRCODE_LIMIT=30
+    depends_on:
+      - postgres-evolution
+      - redis-evolution
+    networks:
+      - agendazap-net
+
+  redis-evolution:
+    image: redis:7-alpine
+    container_name: agendazap-redis-evolution
+    restart: always
+    command: redis-server --port 6379 --appendonly yes
+    volumes:
+      - redis_evolution_data:/data
+    networks:
+      - agendazap-net
+
+  # PostgreSQL para Evolution API
+  postgres-evolution:
+    image: postgres:15-alpine
+    container_name: agendazap-postgres-evolution
+    restart: always
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution123
+      POSTGRES_DB: evolution
+    volumes:
+      - postgres_evolution_data:/var/lib/postgresql/data
+    networks:
+      - agendazap-net
+
+  # AgendaZap App (opcional — pode rodar local com uvicorn)
+  # agendazap:
+  #   build: .
+  #   container_name: agendazap-app
+  #   restart: always
+  #   ports:
+  #     - "8000:8000"
+  #   env_file: .env
+  #   depends_on:
+  #     - evolution-api
+  #   networks:
+  #     - agendazap-net
+
+volumes:
+  postgres_evolution_data:
+  redis_evolution_data:
+
+networks:
+  agendazap-net:
+    driver: bridge

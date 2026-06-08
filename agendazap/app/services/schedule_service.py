@@ -1,0 +1,115 @@
+from datetime import datetime, date, time, timedelta
+from typing import List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
+import pytz
+
+from app.models.schedule import Schedule
+from app.models.booking import Booking, BookingStatus
+
+BRAZIL_TZ = pytz.timezone("America/Sao_Paulo")
+
+
+def utc_to_brazil(dt: datetime) -> datetime:
+    """Converte datetimes salvos em UTC para o horario local da agenda."""
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    return dt.astimezone(BRAZIL_TZ)
+
+
+def get_available_slots(
+    schedule: Schedule,
+    target_date: date,
+    existing_bookings: List[Booking]
+) -> List[str]:
+    """Gera slots disponíveis para uma data específica"""
+    weekday = target_date.weekday()  # 0=segunda ... 6=domingo
+    availability = schedule.weekly_availability or {}
+    day_slots = availability.get(str(weekday), [])
+
+    if not day_slots:
+        return []
+
+    # Verifica se data está bloqueada
+    blocked = schedule.blocked_dates or []
+    if target_date.isoformat() in blocked:
+        return []
+
+    # Verifica se data está no passado
+    now = datetime.now(BRAZIL_TZ).date()
+    if target_date < now:
+        return []
+
+    # Verifica máximo de dias no futuro
+    max_date = now + timedelta(days=schedule.max_advance_days)
+    if target_date > max_date:
+        return []
+
+    # Coleta horários já agendados
+    booked_starts = set()
+    for booking in existing_bookings:
+        if booking.status != BookingStatus.cancelled:
+            local_start = utc_to_brazil(booking.start_datetime)
+            if local_start.date() == target_date:
+                booked_starts.add(local_start.strftime("%H:%M"))
+
+    slots = []
+    slot_duration = timedelta(minutes=schedule.slot_duration)
+    buffer = timedelta(minutes=schedule.buffer_time)
+
+    for period in day_slots:
+        start_str = period.get("start", "09:00")
+        end_str = period.get("end", "18:00")
+
+        start_h, start_m = map(int, start_str.split(":"))
+        end_h, end_m = map(int, end_str.split(":"))
+
+        current = datetime.combine(target_date, time(start_h, start_m))
+        end = datetime.combine(target_date, time(end_h, end_m))
+
+        while current + slot_duration <= end:
+            slot_str = current.strftime("%H:%M")
+
+            # Não mostrar slots já passados se for hoje
+            if target_date == now:
+                now_time = datetime.now(BRAZIL_TZ).replace(tzinfo=None)
+                if current <= now_time + timedelta(minutes=30):
+                    current += slot_duration + buffer
+                    continue
+
+            if slot_str not in booked_starts:
+                slots.append(slot_str)
+
+            current += slot_duration + buffer
+
+    return slots
+
+
+async def get_month_availability(
+    schedule: Schedule,
+    year: int,
+    month: int,
+    db: AsyncSession
+) -> dict:
+    """Retorna disponibilidade do mês inteiro"""
+    from calendar import monthrange
+
+    result = await db.execute(
+        select(Booking).where(
+            and_(
+                Booking.schedule_id == schedule.id,
+                Booking.status != BookingStatus.cancelled
+            )
+        )
+    )
+    bookings = result.scalars().all()
+
+    _, days_in_month = monthrange(year, month)
+    availability = {}
+
+    for day in range(1, days_in_month + 1):
+        target = date(year, month, day)
+        slots = get_available_slots(schedule, target, bookings)
+        availability[day] = len(slots) > 0
+
+    return availability
