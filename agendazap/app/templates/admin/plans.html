@@ -1,16 +1,16 @@
 ﻿{% extends "admin/base.html" %}
-{% block title %}Planos â€” AgendaZap{% endblock %}
+{% block title %}Planos - AgendaZap{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
     <h1 class="page-title">Planos</h1>
-    <p class="page-subtitle">Escolha o plano ideal para seu negÃ³cio</p>
+    <p class="page-subtitle">Escolha o plano ideal para seu neg&oacute;cio</p>
   </div>
 </div>
 
 {% if success %}
-<div class="alert alert-success">ðŸŽ‰ Pagamento confirmado! Seu plano foi atualizado com sucesso.</div>
+<div class="alert alert-success">Pagamento confirmado! Seu plano foi atualizado com sucesso.</div>
 {% endif %}
 
 {% if error %}
@@ -25,10 +25,10 @@
   <!-- Free -->
   <div class="plan-card">
     <div class="plan-name">Free</div>
-    <div class="plan-price">R$ 0 <span>/mÃªs</span></div>
+    <div class="plan-price">R$ 0 <span>/m&ecirc;s</span></div>
     <ul class="plan-features">
-      <li>1 agendamento gratis</li>
-      <li>NotificaÃ§Ã£o por Email</li>
+      <li>1 agendamento gr&aacute;tis</li>
+      <li>Notifica&ccedil;&atilde;o por Email</li>
       <li>1 agenda</li>
       <li style="opacity: 0.4; text-decoration: line-through">WhatsApp</li>
       <li style="opacity: 0.4; text-decoration: line-through">SMS</li>
@@ -41,10 +41,10 @@
   <!-- Basic -->
   <div class="plan-card">
     <div class="plan-name">Basic</div>
-    <div class="plan-price">R$ 49 <span>/mÃªs</span></div>
+    <div class="plan-price">R$ 49 <span>/m&ecirc;s</span></div>
     <ul class="plan-features">
-      <li>100 agendamentos/mÃªs</li>
-      <li>NotificaÃ§Ã£o por Email</li>
+      <li>100 agendamentos/m&ecirc;s</li>
+      <li>Notifica&ccedil;&atilde;o por Email</li>
       <li>1 agenda</li>
       <li>Link personalizado</li>
       <li style="opacity: 0.4; text-decoration: line-through">WhatsApp</li>
@@ -65,14 +65,14 @@
   <!-- Pro -->
   <div class="plan-card featured">
     <div class="plan-name">Pro</div>
-    <div class="plan-price">R$ 99 <span>/mÃªs</span></div>
+    <div class="plan-price">R$ 99 <span>/m&ecirc;s</span></div>
     <ul class="plan-features">
       <li>Agendamentos ilimitados</li>
-      <li>âœ… <strong>NotificaÃ§Ã£o WhatsApp</strong></li>
-      <li>NotificaÃ§Ã£o por Email</li>
-      <li>MÃºltiplas agendas</li>
+      <li>&#10003; <strong>Notifica&ccedil;&atilde;o WhatsApp</strong></li>
+      <li>Notifica&ccedil;&atilde;o por Email</li>
+      <li>M&uacute;ltiplas agendas</li>
       <li>Link personalizado</li>
-      <li>Suporte prioritÃ¡rio</li>
+      <li>Suporte priorit&aacute;rio</li>
     </ul>
     {% if user.plan.value == 'pro' %}
     <button class="btn btn-primary btn-full" disabled>Plano Atual</button>
@@ -88,6 +88,6 @@
 </div>
 
 <div style="text-align: center; margin-top: 32px; color: var(--text-muted); font-size: 13px">
-  ðŸ’³ Pagamentos processados com seguranÃ§a via Stripe Â· Cancele quando quiser
+  Pagamentos processados com seguran&ccedil;a via Stripe &middot; Cancele quando quiser
 </div>
 {% endblock %}
