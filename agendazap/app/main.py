@@ -29,6 +29,7 @@ ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "agendazapuap.com.br,www.agendazapuap.
 ALLOWED_ORIGIN_HOSTS = {urlparse(origin).netloc for origin in ALLOWED_ORIGINS if urlparse(origin).netloc}
 FORCE_HTTPS = os.getenv("FORCE_HTTPS", "false").lower() == "true"
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
+LOCAL_ORIGINS = {"http://127.0.0.1:8000", "http://localhost:8000"}
 logger = logging.getLogger(__name__)
 RATE_LIMIT_BUCKETS: dict[tuple[str, str], list[float]] = {}
 
@@ -51,6 +52,15 @@ def _rate_limit(request: Request) -> tuple[int, int] | None:
     return None
 
 
+def _is_allowed_origin(source: str) -> bool:
+    parsed = urlparse(source)
+    if parsed.netloc in ALLOWED_ORIGIN_HOSTS:
+        return True
+    if parsed.hostname in LOCAL_HOSTS and parsed.scheme == "http":
+        return True
+    return source.rstrip("/") in LOCAL_ORIGINS
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_tables()
@@ -69,7 +79,7 @@ if APP_ENV == "production" or ALLOWED_HOSTS != ["agendazapuap.com.br", "www.agen
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[*ALLOWED_ORIGINS, *LOCAL_ORIGINS],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
@@ -99,7 +109,7 @@ async def security_middleware(request: Request, call_next):
         source = origin or referer
         if source:
             source_origin = urlparse(source).netloc
-            if source_origin and source_origin not in ALLOWED_ORIGIN_HOSTS:
+            if source_origin and not _is_allowed_origin(source):
                 return JSONResponse({"detail": "Origem da requisicao nao permitida."}, status_code=403)
 
     response = await call_next(request)
