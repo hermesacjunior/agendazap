@@ -24,8 +24,9 @@ API: `https://api.agendazapuap.com.br`
    - `COOKIE_SECURE=true`
    - `FORCE_HTTPS=true`
    - `DATABASE_URL`, `JWT_SECRET`, Supabase, Resend, Stripe e WhatsApp.
-4. Gere um dominio no Railway para o servico.
-5. Em DNS, crie `api.agendazapuap.com.br` como CNAME para o dominio informado pelo Railway.
+4. Antes de abrir ao publico, rode `python scripts/check_env.py`.
+5. Gere um dominio no Railway para o servico.
+6. Em DNS, crie `api.agendazapuap.com.br` como CNAME para o dominio informado pelo Railway.
 
 ## 3. Vercel frontend
 

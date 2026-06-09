@@ -19,9 +19,11 @@ from app.services.auth_service import (
     cookie_secure,
 )
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
+from app.security import clean_phone, clean_text, install_template_security, require_csrf_token
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+install_template_security(templates)
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
 
 
@@ -47,13 +49,15 @@ async def login(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    csrf_token: str = Form(""),
     db: AsyncSession = Depends(get_db)
 ):
+    require_csrf_token(request, csrf_token)
     email = email.strip().lower()
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not user.is_active or not verify_password(password, user.hashed_password):
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "error": "Email ou senha inválidos"
@@ -84,11 +88,13 @@ async def register(
     email: str = Form(...),
     password: str = Form(...),
     whatsapp: str = Form(""),
+    csrf_token: str = Form(""),
     db: AsyncSession = Depends(get_db)
 ):
-    name = name.strip()
+    require_csrf_token(request, csrf_token)
+    name = clean_text(name, max_length=100)
     email = email.strip().lower()
-    whatsapp = whatsapp.strip()
+    whatsapp = clean_phone(whatsapp)
 
     if len(password) < 8:
         return templates.TemplateResponse("auth/register.html", {
@@ -152,8 +158,10 @@ async def forgot_password_page(request: Request):
 async def forgot_password(
     request: Request,
     email: str = Form(...),
+    csrf_token: str = Form(""),
     db: AsyncSession = Depends(get_db)
 ):
+    require_csrf_token(request, csrf_token)
     email = email.strip().lower()
     sent = False
     if supabase_is_configured():
@@ -201,8 +209,10 @@ async def reset_password(
     request: Request,
     token: str = Form(...),
     password: str = Form(...),
+    csrf_token: str = Form(""),
     db: AsyncSession = Depends(get_db),
 ):
+    require_csrf_token(request, csrf_token)
     payload = decode_password_reset_token(token)
     if not payload:
         return templates.TemplateResponse("auth/reset_password.html", {
@@ -235,8 +245,9 @@ async def reset_password(
     })
 
 
-@router.get("/logout")
-async def logout(request: Request):
+@router.post("/logout")
+async def logout(request: Request, csrf_token: str = Form("")):
+    require_csrf_token(request, csrf_token)
     response = RedirectResponse(url="/auth/login", status_code=302)
     response.delete_cookie("access_token", samesite="lax", secure=cookie_secure(request))
     return response

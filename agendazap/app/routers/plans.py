@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,9 +10,11 @@ from app.database import get_db
 from app.models.user import User
 from app.models.user import PlanType
 from app.services.auth_service import require_user
+from app.security import install_template_security, require_csrf_token
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+install_template_security(templates)
 
 load_dotenv()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
@@ -93,9 +95,11 @@ async def subscribe_get(plan_slug: str):
 async def create_checkout(
     request: Request,
     plan_slug: str,
+    csrf_token: str = Form(""),
     current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
+    require_csrf_token(request, csrf_token)
     if not stripe_is_configured():
         return render_plans(
             request,
@@ -149,8 +153,10 @@ async def create_checkout(
 @router.post("/portal")
 async def billing_portal(
     request: Request,
+    csrf_token: str = Form(""),
     current_user: User = Depends(require_user),
 ):
+    require_csrf_token(request, csrf_token)
     if not stripe_is_configured():
         return render_plans(
             request,

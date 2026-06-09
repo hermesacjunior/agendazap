@@ -22,6 +22,7 @@
     {% endif %}
 
     <form method="POST" action="/auth/register">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <div class="form-group">
         <label>Nome completo</label>
         <input type="text" name="name" placeholder="Seu nome" required autofocus>

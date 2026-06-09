@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 from app.database import create_tables
 from app.routers import auth, admin, booking, webhooks, plans, api
+from app.security import is_allowed_origin, set_csrf_cookie, validate_csrf
 
 load_dotenv()
 
@@ -45,20 +46,11 @@ def _rate_limit(request: Request) -> tuple[int, int] | None:
     if request.method != "POST":
         return None
     path = request.url.path
-    if path in {"/auth/login", "/auth/register"}:
+    if path in {"/auth/login", "/auth/register", "/api/auth/login", "/api/auth/register"}:
         return (10, 15 * 60)
     if path.endswith("/book") and path.startswith("/b/"):
         return (20, 60)
     return None
-
-
-def _is_allowed_origin(source: str) -> bool:
-    parsed = urlparse(source)
-    if parsed.netloc in ALLOWED_ORIGIN_HOSTS:
-        return True
-    if parsed.hostname in LOCAL_HOSTS and parsed.scheme == "http":
-        return True
-    return source.rstrip("/") in LOCAL_ORIGINS
 
 
 @asynccontextmanager
@@ -109,16 +101,27 @@ async def security_middleware(request: Request, call_next):
         source = origin or referer
         if source:
             source_origin = urlparse(source).netloc
-            if source_origin and not _is_allowed_origin(source):
+            if source_origin and not is_allowed_origin(source, ALLOWED_ORIGIN_HOSTS, LOCAL_ORIGINS):
                 return JSONResponse({"detail": "Origem da requisicao nao permitida."}, status_code=403)
+
+    csrf_error = await validate_csrf(request)
+    if csrf_error:
+        return csrf_error
 
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
+    )
+    if request.url.path.startswith(("/admin", "/auth", "/plans")):
+        response.headers.setdefault("Cache-Control", "no-store")
     if FORCE_HTTPS and request.url.hostname not in LOCAL_HOSTS:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    set_csrf_cookie(request, response)
     return response
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -151,6 +154,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 async def root(request: Request):
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/auth/login")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":

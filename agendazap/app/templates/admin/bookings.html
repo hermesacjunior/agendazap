@@ -62,11 +62,13 @@
             {% if booking.status.value == 'confirmed' %}
             <form method="POST" action="/admin/bookings/{{ booking.id }}/cancel"
               onsubmit="return confirm('Cancelar este agendamento?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
               <button type="submit" class="btn btn-danger btn-sm">Cancelar</button>
             </form>
             {% elif booking.status.value == 'cancelled' %}
             <form method="POST" action="/admin/bookings/{{ booking.id }}/delete"
               onsubmit="return confirm('Excluir este agendamento cancelado? Esta acao nao pode ser desfeita.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
               <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
             </form>
             {% else %}

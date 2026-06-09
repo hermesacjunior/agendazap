@@ -47,9 +47,12 @@
             <div class="user-plan">Plano {{ user.plan.value.capitalize() }}</div>
           </div>
         </div>
-        <a href="/auth/logout" class="nav-item mt-4" style="color: var(--red)">
+        <form method="POST" action="/auth/logout" class="mt-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+          <button type="submit" class="nav-item" style="color: var(--red); width: 100%; border: 0; text-align: left">
           <span class="nav-icon">↪</span> Sair
-        </a>
+          </button>
+        </form>
       </div>
     </aside>
     <main class="main-content">

@@ -12,11 +12,14 @@ from app.models.user import User
 from app.models.schedule import Schedule
 from app.models.booking import Booking, BookingStatus
 from app.services.schedule_service import get_available_slots, get_month_availability
+from app.services.schedule_service import utc_to_brazil
 from app.services.whatsapp_service import notify_admin_new_booking
 from app.services.email_service import notify_admin_email
+from app.security import clean_multiline, clean_phone, clean_text, install_template_security, require_csrf_token
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+install_template_security(templates)
 BRAZIL_TZ = pytz.timezone("America/Sao_Paulo")
 logger = logging.getLogger(__name__)
 
@@ -165,12 +168,14 @@ async def create_booking(
     date_str: str = Form(...),
     time_str: str = Form(...),
     notes: str = Form(""),
+    csrf_token: str = Form(""),
     db: AsyncSession = Depends(get_db)
 ):
-    client_name = client_name.strip()
+    require_csrf_token(request, csrf_token)
+    client_name = clean_text(client_name, max_length=100)
     client_email = client_email.strip().lower()
-    client_whatsapp = client_whatsapp.strip()
-    notes = notes.strip()
+    client_whatsapp = clean_phone(client_whatsapp)
+    notes = clean_multiline(notes, max_length=1000)
 
     result = await db.execute(select(User).where(User.slug == slug))
     user = result.scalar_one_or_none()
@@ -294,7 +299,7 @@ async def create_booking(
         pass  # Notificações não devem quebrar o agendamento
 
     return RedirectResponse(
-        url=f"/b/{slug}/success?name={client_name}&date={booking_data['date']}&time={booking_data['time']}",
+        url=f"/b/{slug}/success?booking_id={booking.id}",
         status_code=302
     )
 
@@ -303,18 +308,28 @@ async def create_booking(
 async def booking_success(
     slug: str,
     request: Request,
-    name: str = "",
-    date: str = "",
-    time: str = "",
+    booking_id: str = "",
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(User).where(User.slug == slug))
     user = result.scalar_one_or_none()
+    booking = None
+    booking_date = "-"
+    booking_time = "-"
+    if user and booking_id:
+        result = await db.execute(
+            select(Booking).where(and_(Booking.id == booking_id, Booking.user_id == user.id))
+        )
+        booking = result.scalar_one_or_none()
+        if booking:
+            local_start = utc_to_brazil(booking.start_datetime)
+            booking_date = local_start.strftime("%d/%m/%Y")
+            booking_time = local_start.strftime("%H:%M")
 
     return templates.TemplateResponse("public/success.html", {
         "request": request,
         "profile": user,
-        "client_name": name,
-        "date": date,
-        "time": time,
+        "booking": booking,
+        "booking_date": booking_date,
+        "booking_time": booking_time,
     })

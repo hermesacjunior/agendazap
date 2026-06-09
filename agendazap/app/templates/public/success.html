@@ -14,7 +14,7 @@
       Agendamento confirmado
     </h1>
     <p style="color: var(--text-muted); margin-bottom: 24px">
-      Ola, <strong>{{ client_name }}</strong>. Seu horario foi cadastrado com sucesso.
+      Ola{% if booking %}, <strong>{{ booking.client_name }}</strong>{% endif %}. Seu horario foi cadastrado com sucesso.
     </p>
 
     <div style="background: var(--bg-input); border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: left">
@@ -25,11 +25,11 @@
         </div>
         <div class="flex justify-between">
           <span style="color: var(--text-muted); font-size: 14px">Data</span>
-          <span style="font-weight: 500; font-size: 14px">{{ date }}</span>
+          <span style="font-weight: 500; font-size: 14px">{{ booking_date }}</span>
         </div>
         <div class="flex justify-between">
           <span style="color: var(--text-muted); font-size: 14px">Horario</span>
-          <span style="font-weight: 500; font-size: 14px">{{ time }}</span>
+          <span style="font-weight: 500; font-size: 14px">{{ booking_time }}</span>
         </div>
       </div>
     </div>

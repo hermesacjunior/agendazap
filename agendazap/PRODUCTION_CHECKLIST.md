@@ -5,6 +5,7 @@
 - Nunca publicar `.env`, banco `.db`, logs ou `venv`.
 - Usar variaveis de ambiente no provedor de hospedagem.
 - Trocar `SECRET_KEY` por uma chave longa e aleatoria antes de colocar `APP_ENV=production`.
+- Configurar `JWT_SECRET` e `SECRET_KEY` com valores diferentes, longos e aleatorios.
 - Rotacionar qualquer chave que tenha sido exposta em chat, print, log ou Git.
 
 ## Variaveis obrigatorias
@@ -17,6 +18,7 @@ ALLOWED_HOSTS=seudominio.com,www.seudominio.com
 COOKIE_SECURE=true
 FORCE_HTTPS=true
 SECRET_KEY=chave-longa-aleatoria
+JWT_SECRET=outra-chave-longa-aleatoria
 DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/agendazap
 ```
 
@@ -26,6 +28,8 @@ DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/agendazap
 - Fazer backup automatico diario.
 - Nao usar `agendazap.db` em producao.
 - Criar migracoes antes de alterar schema em producao.
+- Executar `supabase/migrations/001_initial_schema.sql` no PostgreSQL antes do primeiro deploy.
+- Rodar `python scripts/check_env.py` e corrigir qualquer erro antes de publicar.
 
 ## Stripe
 
@@ -56,4 +60,6 @@ DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/agendazap
 - Protecao basica contra POST de origem externa.
 - Rate limit simples em login, cadastro e criacao de agendamento.
 - Headers de seguranca HTTP.
-
+- CSRF em formularios web autenticados e publicos.
+- Webhook Stripe exige assinatura em producao.
+- Paginas autenticadas enviam `Cache-Control: no-store`.

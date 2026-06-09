@@ -67,6 +67,7 @@
       <div class="card mt-4" id="bookingForm" style="display: none">
         <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Seus dados</h3>
         <form method="POST" action="/b/{{ profile.slug }}/book">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
           <input type="hidden" name="date_str" id="selectedDate">
           <input type="hidden" name="time_str" id="selectedTime">
           <div class="form-group">

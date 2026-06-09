@@ -53,10 +53,12 @@
     {% if user.plan.value == 'basic' %}
     <button class="btn btn-secondary btn-full" disabled>Plano Atual</button>
     <form method="POST" action="/plans/portal" style="margin-top: 10px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-secondary btn-full">Gerenciar assinatura</button>
     </form>
     {% else %}
     <form method="POST" action="/plans/subscribe/basic">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-secondary btn-full">Assinar Basic</button>
     </form>
     {% endif %}
@@ -77,10 +79,12 @@
     {% if user.plan.value == 'pro' %}
     <button class="btn btn-primary btn-full" disabled>Plano Atual</button>
     <form method="POST" action="/plans/portal" style="margin-top: 10px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-secondary btn-full">Gerenciar assinatura</button>
     </form>
     {% else %}
     <form method="POST" action="/plans/subscribe/pro">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-primary btn-full">Assinar Pro</button>
     </form>
     {% endif %}

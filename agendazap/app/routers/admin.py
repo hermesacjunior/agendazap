@@ -32,9 +32,11 @@ from app.services.whatsapp_service import (
     logout_instance,
     set_quiet_instance_settings,
 )
+from app.security import clean_int, clean_multiline, clean_phone, clean_text, install_template_security, require_csrf_token
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+install_template_security(templates)
 logger = logging.getLogger(__name__)
 APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 
@@ -116,6 +118,7 @@ async def save_schedule(
     db: AsyncSession = Depends(get_db)
 ):
     data = await request.form()
+    require_csrf_token(request, str(data.get("csrf_token") or ""))
     result = await db.execute(
         select(Schedule).where(Schedule.user_id == current_user.id)
     )
@@ -125,10 +128,10 @@ async def save_schedule(
         schedule = Schedule(user_id=current_user.id)
         db.add(schedule)
 
-    schedule.name = data.get("name", "Minha Agenda")
-    schedule.slot_duration = int(data.get("slot_duration", 60))
-    schedule.buffer_time = int(data.get("buffer_time", 0))
-    schedule.max_advance_days = int(data.get("max_advance_days", 30))
+    schedule.name = clean_text(data.get("name"), max_length=100, default="Minha Agenda")
+    schedule.slot_duration = clean_int(data.get("slot_duration"), default=60, minimum=15, maximum=240)
+    schedule.buffer_time = clean_int(data.get("buffer_time"), default=0, minimum=0, maximum=120)
+    schedule.max_advance_days = clean_int(data.get("max_advance_days"), default=30, minimum=1, maximum=365)
 
     # Parse availability
     availability = {}
@@ -168,9 +171,12 @@ async def bookings_list(
 @router.post("/bookings/{booking_id}/cancel")
 async def cancel_booking(
     booking_id: str,
+    request: Request,
     current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db)
 ):
+    form = await request.form()
+    require_csrf_token(request, str(form.get("csrf_token") or ""))
     result = await db.execute(
         select(Booking).where(
             and_(Booking.id == booking_id, Booking.user_id == current_user.id)
@@ -219,9 +225,12 @@ async def cancel_booking(
 @router.post("/bookings/{booking_id}/delete")
 async def delete_cancelled_booking(
     booking_id: str,
+    request: Request,
     current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db)
 ):
+    form = await request.form()
+    require_csrf_token(request, str(form.get("csrf_token") or ""))
     result = await db.execute(
         select(Booking).where(
             and_(Booking.id == booking_id, Booking.user_id == current_user.id)
@@ -269,7 +278,8 @@ async def connect_whatsapp(
     db: AsyncSession = Depends(get_db)
 ):
     data = await request.form()
-    whatsapp_number = (data.get("whatsapp") or current_user.whatsapp or "").strip()
+    require_csrf_token(request, str(data.get("csrf_token") or ""))
+    whatsapp_number = clean_phone(data.get("whatsapp") or current_user.whatsapp or "")
     instance_prefix = f"agendazap-{current_user.id[:8]}"
     instance_name = f"{instance_prefix}-{uuid.uuid4().hex[:6]}"
 
@@ -356,8 +366,10 @@ async def whatsapp_status(
 
 @router.post("/whatsapp/silence")
 async def silence_whatsapp(
+    request: Request,
     current_user: User = Depends(require_user),
 ):
+    require_csrf_token(request, request.headers.get("x-csrf-token"))
     if not current_user.evolution_instance:
         return JSONResponse({"ok": False, "error": "Nenhuma instancia conectada."}, status_code=404)
 
@@ -367,9 +379,11 @@ async def silence_whatsapp(
 
 @router.post("/whatsapp/reset")
 async def reset_whatsapp(
+    request: Request,
     current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db)
 ):
+    require_csrf_token(request, request.headers.get("x-csrf-token"))
     instance_name = current_user.evolution_instance
     if instance_name:
         try:
@@ -415,8 +429,9 @@ async def save_profile(
     db: AsyncSession = Depends(get_db)
 ):
     data = await request.form()
-    current_user.name = data.get("name", current_user.name)
-    current_user.whatsapp = data.get("whatsapp", current_user.whatsapp)
-    current_user.bio = data.get("bio", current_user.bio)
+    require_csrf_token(request, str(data.get("csrf_token") or ""))
+    current_user.name = clean_text(data.get("name"), max_length=100, default=current_user.name)
+    current_user.whatsapp = clean_phone(data.get("whatsapp") or current_user.whatsapp)
+    current_user.bio = clean_multiline(data.get("bio"), max_length=1000)
     await db.commit()
     return RedirectResponse(url="/admin/profile?saved=1", status_code=302)

@@ -118,7 +118,7 @@ async def api_login(payload: AuthLogin, db: AsyncSession = Depends(get_db)):
     email = payload.email.lower()
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(payload.password, user.hashed_password):
+    if not user or not user.is_active or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
     return {"access_token": create_access_token({"sub": user.id}), "token_type": "bearer"}
 

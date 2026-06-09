@@ -16,6 +16,7 @@
 <div class="grid-2" style="align-items: start">
   <div class="card">
     <form method="POST" action="/admin/profile">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <div class="form-group">
         <label>Nome</label>
         <input type="text" name="name" value="{{ user.name }}" required>

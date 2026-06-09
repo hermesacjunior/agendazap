@@ -10,6 +10,7 @@
 </div>
 
 <form method="POST" action="/admin/schedule">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
   <div class="grid-2" style="align-items: start">
     <div style="display: flex; flex-direction: column; gap: 16px">
 

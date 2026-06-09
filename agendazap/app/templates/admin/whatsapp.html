@@ -103,6 +103,7 @@
 
 {% block scripts %}
 <script>
+const csrfToken = "{{ csrf_token(request) }}";
 let statusInterval = null;
 let statusStartedAt = null;
 let statusAttempts = 0;
@@ -117,6 +118,7 @@ async function connectWhatsApp() {
   try {
     const formData = new FormData();
     formData.append('whatsapp', document.getElementById('whatsappNumber').value.trim());
+    formData.append('csrf_token', csrfToken);
     const res = await fetch('/admin/whatsapp/connect', { method: 'POST', body: formData });
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
@@ -196,7 +198,10 @@ async function resetWhatsApp() {
   status.textContent = 'Recriando instancia...';
 
   try {
-    const res = await fetch('/admin/whatsapp/reset', { method: 'POST' });
+    const res = await fetch('/admin/whatsapp/reset', {
+      method: 'POST',
+      headers: {'x-csrf-token': csrfToken}
+    });
     const data = await res.json();
     if (!res.ok || data.error) {
       throw new Error(data.error || 'Erro ao recriar instancia.');
