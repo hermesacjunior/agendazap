@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 load_dotenv()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br"))
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://agendazapuap.com.br")).rstrip("/")
 
 PLANS = {
     "basic": {
@@ -52,6 +52,10 @@ def stripe_is_configured() -> bool:
 
 def price_is_configured(price_id: str) -> bool:
     return bool(price_id) and not price_id.startswith("price_xxxxx")
+
+
+def checkout_url(path: str) -> str:
+    return f"{APP_URL}{path}"
 
 
 def render_plans(
@@ -124,8 +128,8 @@ async def create_checkout(
             payment_method_types=["card"],
             line_items=[{"price": plan["stripe_price_id"], "quantity": 1}],
             mode="subscription",
-            success_url=f"{APP_URL}/plans/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{APP_URL}/plans/",
+            success_url=checkout_url("/plans/success?session_id={CHECKOUT_SESSION_ID}"),
+            cancel_url=checkout_url("/plans/"),
             metadata={"user_id": current_user.id, "plan": plan_slug},
         )
     except stripe.error.StripeError as exc:
@@ -165,7 +169,7 @@ async def billing_portal(
     try:
         session = stripe.billing_portal.Session.create(
             customer=current_user.stripe_customer_id,
-            return_url=f"{APP_URL}/plans/",
+            return_url=checkout_url("/plans/"),
         )
     except stripe.error.StripeError as exc:
         message = exc.user_message or str(exc)

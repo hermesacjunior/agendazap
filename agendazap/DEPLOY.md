@@ -1,13 +1,13 @@
 # Deploy AgendaZap
 
-Dominio principal: `https://www.agendazapuap.com.br`
+Dominio principal: `https://agendazapuap.com.br`
 API: `https://api.agendazapuap.com.br`
 
 ## 1. Supabase
 
 1. Crie um projeto no Supabase.
 2. Em SQL Editor, execute `supabase/migrations/001_initial_schema.sql`.
-3. Ative Auth por email e configure a URL do site como `https://www.agendazapuap.com.br`.
+3. Ative Auth por email e configure a URL do site como `https://agendazapuap.com.br`.
 4. Copie `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e a connection string PostgreSQL.
 5. Use a connection string async no backend: `postgresql+asyncpg://...`.
 
@@ -16,7 +16,7 @@ API: `https://api.agendazapuap.com.br`
 1. Crie um projeto Railway apontando para este repositorio.
 2. Configure o start command do `railway.json`.
 3. Adicione as variaveis:
-   - `APP_URL=https://www.agendazapuap.com.br`
+   - `APP_URL=https://agendazapuap.com.br`
    - `API_URL=https://api.agendazapuap.com.br`
    - `APP_ENV=production`
    - `ALLOWED_ORIGINS=https://www.agendazapuap.com.br,https://agendazapuap.com.br,https://api.agendazapuap.com.br`
@@ -29,12 +29,12 @@ API: `https://api.agendazapuap.com.br`
 
 ## 3. Vercel frontend
 
-O projeto atual ainda e server-rendered FastAPI. O `vercel.json` encaminha o dominio principal para a API no Railway ate existir um frontend Vite/React separado.
+O projeto atual ainda e server-rendered FastAPI. O `vercel.json` encaminha as rotas do app para a API no Railway ate existir um frontend Vite/React separado.
 
 1. Crie um projeto na Vercel apontando para este repositorio.
-2. Configure o dominio `www.agendazapuap.com.br`.
+2. Configure o dominio `agendazapuap.com.br`.
 3. Configure:
-   - `VITE_APP_URL=https://www.agendazapuap.com.br`
+   - `VITE_APP_URL=https://agendazapuap.com.br`
    - `VITE_API_URL=https://api.agendazapuap.com.br`
    - `NODE_ENV=production`
 4. Em DNS, aponte o dominio raiz e `www` para a Vercel conforme instrucoes da Vercel.
@@ -50,7 +50,7 @@ O projeto atual ainda e server-rendered FastAPI. O `vercel.json` encaminha o dom
 
 Webhook endpoint de producao:
 
-`https://api.agendazapuap.com.br/webhooks/stripe`
+`https://agendazapuap.com.br/webhooks/stripe`
 
 Eventos:
 

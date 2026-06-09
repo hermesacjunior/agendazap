@@ -19,5 +19,31 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/auth/:path*",
+      "destination": "https://api.agendazapuap.com.br/auth/:path*"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "https://api.agendazapuap.com.br/admin/:path*"
+    },
+    {
+      "source": "/plans/:path*",
+      "destination": "https://api.agendazapuap.com.br/plans/:path*"
+    },
+    {
+      "source": "/webhooks/:path*",
+      "destination": "https://api.agendazapuap.com.br/webhooks/:path*"
+    },
+    {
+      "source": "/static/:path*",
+      "destination": "https://api.agendazapuap.com.br/static/:path*"
+    },
+    {
+      "source": "/b/:path*",
+      "destination": "https://api.agendazapuap.com.br/b/:path*"
+    }
   ]
 }
