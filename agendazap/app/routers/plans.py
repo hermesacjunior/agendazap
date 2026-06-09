@@ -134,6 +134,7 @@ async def create_checkout(
         )
     except stripe.error.StripeError as exc:
         await db.rollback()
+        await db.refresh(current_user)
         message = exc.user_message or str(exc)
         return render_plans(
             request,
