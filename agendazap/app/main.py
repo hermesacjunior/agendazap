@@ -2,9 +2,8 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 from time import time
@@ -29,6 +28,7 @@ ALLOWED_ORIGINS = _csv_env("ALLOWED_ORIGINS", APP_URL)
 ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "agendazapuap.com.br,www.agendazapuap.com.br,api.agendazapuap.com.br")
 ALLOWED_ORIGIN_HOSTS = {urlparse(origin).netloc for origin in ALLOWED_ORIGINS if urlparse(origin).netloc}
 FORCE_HTTPS = os.getenv("FORCE_HTTPS", "false").lower() == "true"
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
 logger = logging.getLogger(__name__)
 RATE_LIMIT_BUCKETS: dict[tuple[str, str], list[float]] = {}
 
@@ -65,10 +65,7 @@ app = FastAPI(
 )
 
 if APP_ENV == "production" or ALLOWED_HOSTS != ["agendazapuap.com.br", "www.agendazapuap.com.br", "api.agendazapuap.com.br"]:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
-
-if FORCE_HTTPS:
-    app.add_middleware(HTTPSRedirectMiddleware)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=[*ALLOWED_HOSTS, *LOCAL_HOSTS])
 
 app.add_middleware(
     CORSMiddleware,
@@ -81,6 +78,10 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
+    if FORCE_HTTPS and request.url.scheme == "http" and request.url.hostname not in LOCAL_HOSTS:
+        secure_url = request.url.replace(scheme="https")
+        return RedirectResponse(str(secure_url), status_code=307)
+
     limit = _rate_limit(request)
     if limit:
         max_requests, window_seconds = limit
@@ -106,7 +107,7 @@ async def security_middleware(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-    if FORCE_HTTPS:
+    if FORCE_HTTPS and request.url.hostname not in LOCAL_HOSTS:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
 
