@@ -10,18 +10,29 @@ import os
 from app.database import get_db
 from app.models.user import User
 from app.services.auth_service import (
-    verify_password, get_password_hash, create_access_token, get_current_user, cookie_secure
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    create_password_reset_token,
+    decode_password_reset_token,
+    get_current_user,
+    cookie_secure,
 )
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
 
 
 def generate_slug(name: str) -> str:
     slug = re.sub(r'[^a-z0-9]', '-', name.lower().strip())
     slug = re.sub(r'-+', '-', slug).strip('-')
     return f"{slug}-{str(uuid.uuid4())[:6]}"
+
+
+def is_local_request(request: Request) -> bool:
+    return request.url.hostname in LOCAL_HOSTS
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -138,17 +149,89 @@ async def forgot_password_page(request: Request):
 
 
 @router.post("/forgot-password", response_class=HTMLResponse)
-async def forgot_password(request: Request, email: str = Form(...)):
+async def forgot_password(
+    request: Request,
+    email: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
     email = email.strip().lower()
     sent = False
     if supabase_is_configured():
         redirect_to = f"{os.getenv('APP_URL', 'https://www.agendazapuap.com.br').rstrip('/')}/auth/login"
         sent = await send_password_recovery(email, redirect_to)
+    elif is_local_request(request):
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        reset_url = None
+        if user:
+            token = create_password_reset_token(user)
+            reset_url = str(request.url_for("reset_password_page")) + f"?token={token}"
+
+        return templates.TemplateResponse("auth/forgot_password.html", {
+            "request": request,
+            "success": "Use o link abaixo para redefinir sua senha neste ambiente local.",
+            "reset_url": reset_url,
+        })
 
     return templates.TemplateResponse("auth/forgot_password.html", {
         "request": request,
         "success": "Se este email existir, enviaremos as instrucoes de recuperacao.",
         "warning": None if sent else "Recuperacao via Supabase ainda nao configurada no ambiente.",
+    })
+
+
+@router.get("/reset-password", response_class=HTMLResponse, name="reset_password_page")
+async def reset_password_page(request: Request, token: str = ""):
+    payload = decode_password_reset_token(token)
+    if not payload:
+        return templates.TemplateResponse("auth/reset_password.html", {
+            "request": request,
+            "error": "Link de recuperacao invalido ou expirado.",
+        })
+
+    return templates.TemplateResponse("auth/reset_password.html", {
+        "request": request,
+        "token": token,
+        "email": payload.get("email", ""),
+    })
+
+
+@router.post("/reset-password", response_class=HTMLResponse)
+async def reset_password(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    payload = decode_password_reset_token(token)
+    if not payload:
+        return templates.TemplateResponse("auth/reset_password.html", {
+            "request": request,
+            "error": "Link de recuperacao invalido ou expirado.",
+        })
+
+    if len(password) < 8:
+        return templates.TemplateResponse("auth/reset_password.html", {
+            "request": request,
+            "token": token,
+            "email": payload.get("email", ""),
+            "error": "A senha deve ter pelo menos 8 caracteres.",
+        })
+
+    result = await db.execute(select(User).where(User.id == payload.get("sub")))
+    user = result.scalar_one_or_none()
+    if not user:
+        return templates.TemplateResponse("auth/reset_password.html", {
+            "request": request,
+            "error": "Usuario nao encontrado.",
+        })
+
+    user.hashed_password = get_password_hash(password)
+    await db.commit()
+
+    return templates.TemplateResponse("auth/login.html", {
+        "request": request,
+        "success": "Senha atualizada. Entre com sua nova senha.",
     })
 
 
