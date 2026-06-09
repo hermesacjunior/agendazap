@@ -27,10 +27,15 @@ if APP_ENV == "production" and SECRET_KEY == "agendazap-secret-change-in-product
     raise RuntimeError("JWT_SECRET ou SECRET_KEY precisa ser configurada em producao")
 
 
-def cookie_secure() -> bool:
+def cookie_secure(request: Request | None = None) -> bool:
+    if request and request.url.hostname in {"127.0.0.1", "localhost", "testserver"}:
+        return False
+
     configured = os.getenv("COOKIE_SECURE")
     if configured is not None:
         return configured.lower() == "true"
+    if request:
+        return request.url.scheme == "https"
     return os.getenv("APP_URL", "").startswith("https://")
 
 

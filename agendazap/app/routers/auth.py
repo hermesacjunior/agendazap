@@ -54,7 +54,7 @@ async def login(
         "access_token",
         token,
         httponly=True,
-        secure=cookie_secure(),
+        secure=cookie_secure(request),
         samesite="lax",
         max_age=604800,
     )
@@ -125,7 +125,7 @@ async def register(
         "access_token",
         token,
         httponly=True,
-        secure=cookie_secure(),
+        secure=cookie_secure(request),
         samesite="lax",
         max_age=604800,
     )
@@ -153,7 +153,7 @@ async def forgot_password(request: Request, email: str = Form(...)):
 
 
 @router.get("/logout")
-async def logout():
+async def logout(request: Request):
     response = RedirectResponse(url="/auth/login", status_code=302)
-    response.delete_cookie("access_token", samesite="lax", secure=cookie_secure())
+    response.delete_cookie("access_token", samesite="lax", secure=cookie_secure(request))
     return response
