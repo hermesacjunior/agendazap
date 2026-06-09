@@ -22,8 +22,16 @@
   ],
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://api.agendazapuap.com.br/api/$1"
+    },
+    {
+      "source": "/webhooks/(.*)",
+      "destination": "https://api.agendazapuap.com.br/webhooks/$1"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "https://api.agendazapuap.com.br/$1"
     }
   ]
 }

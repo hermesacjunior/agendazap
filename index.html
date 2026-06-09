@@ -3,83 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="0; url=/auth/login">
   <title>AgendaZap</title>
-  <style>
-    :root {
-      color-scheme: light;
-      font-family: Inter, Arial, sans-serif;
-      background: #f6f8fb;
-      color: #18202f;
-    }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 28px;
-    }
-    main {
-      width: min(760px, 100%);
-      background: #fff;
-      border: 1px solid #dde3ee;
-      border-radius: 8px;
-      padding: 34px;
-      box-shadow: 0 18px 48px rgba(24, 32, 47, 0.08);
-    }
-    .brand {
-      margin: 0 0 10px;
-      font-size: clamp(34px, 7vw, 54px);
-      line-height: 1.04;
-      letter-spacing: 0;
-    }
-    .lead {
-      margin: 0 0 24px;
-      color: #536174;
-      font-size: 18px;
-      line-height: 1.55;
-      max-width: 620px;
-    }
-    .status {
-      display: inline-flex;
-      align-items: center;
-      margin-bottom: 22px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: #eaf7f0;
-      color: #17633b;
-      font-weight: 700;
-      font-size: 14px;
-    }
-    .panel {
-      display: grid;
-      gap: 10px;
-      margin-top: 22px;
-      padding-top: 22px;
-      border-top: 1px solid #e3e8f0;
-      color: #4d5b70;
-      line-height: 1.5;
-    }
-    .label {
-      color: #1f2937;
-      font-weight: 700;
-    }
-    a {
-      color: #1f6feb;
-      font-weight: 700;
-      text-decoration: none;
-    }
-  </style>
+  <script>window.location.replace("/auth/login");</script>
 </head>
 <body>
-  <main>
-    <div class="status">AgendaZap online</div>
-    <h1 class="brand">AgendaZap</h1>
-    <p class="lead">Sistema de agendamentos online em preparacao para o dominio oficial.</p>
-    <div class="panel">
-      <div><span class="label">Site principal:</span> <a href="https://www.agendazapuap.com.br">www.agendazapuap.com.br</a></div>
-      <div><span class="label">Ambiente atual:</span> Vercel</div>
-      <div><span class="label">Status:</span> frontend publicado; backend sera conectado na proxima etapa de deploy.</div>
-    </div>
-  </main>
+  <a href="/auth/login">Entrar no AgendaZap</a>
 </body>
 </html>
