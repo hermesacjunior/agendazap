@@ -1,0 +1,23 @@
+[Unit]
+Description=AgendaZap FastAPI application
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=agendazap
+Group=www-data
+WorkingDirectory=/var/www/agendazap/current/agendazap
+EnvironmentFile=/etc/agendazap/agendazap.env
+ExecStart=/var/www/agendazap/current/agendazap/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/www/agendazap/current/agendazap /var/log/agendazap
+
+[Install]
+WantedBy=multi-user.target

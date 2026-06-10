@@ -1,15 +1,115 @@
-# Deploy HostGator - AgendaZap
+# Deploy VPS HostGator - AgendaZap
 
-AgendaZap e um app FastAPI/ASGI. Em HostGator, confirme primeiro qual ambiente voce contratou:
+AgendaZap e um app FastAPI/ASGI. Para producao, use uma VPS Linux com SSH. Evite cPanel compartilhado para este projeto.
 
-- VPS/dedicado com SSH: recomendado para FastAPI.
-- cPanel compartilhado: normalmente usa Passenger/WSGI; FastAPI pode exigir adaptador ASGI->WSGI ou outro plano com suporte a app Python.
+Este guia assume Ubuntu 22.04/24.04, Nginx, PostgreSQL local e dominio:
 
-## Recomendado: VPS ou cPanel com acesso SSH
+- `agendazapuap.com.br`
+- `www.agendazapuap.com.br`
 
-1. Aponte o dominio `agendazapuap.com.br` para o servidor.
-2. Crie um banco PostgreSQL gerenciado ou no proprio servidor.
-3. Configure as variaveis de ambiente de producao:
+## 1. DNS
+
+No painel do dominio, aponte:
+
+```text
+A     @      IP_DA_VPS
+A     www    IP_DA_VPS
+```
+
+A propagacao pode levar algumas horas.
+
+## 2. Acesso inicial
+
+Entre na VPS:
+
+```bash
+ssh root@IP_DA_VPS
+```
+
+Atualize o servidor:
+
+```bash
+apt update && apt upgrade -y
+```
+
+## 3. Instalar base do servidor
+
+Dentro da pasta do projeto, o arquivo abaixo instala Python, Nginx, PostgreSQL e Certbot:
+
+```bash
+sudo bash deploy/scripts/bootstrap_ubuntu_vps.sh
+```
+
+Se o codigo ainda nao estiver na VPS, rode manualmente:
+
+```bash
+apt update
+apt install -y python3 python3-venv python3-pip git nginx postgresql postgresql-contrib certbot python3-certbot-nginx
+useradd --system --home /var/www/agendazap --shell /usr/sbin/nologin agendazap || true
+mkdir -p /var/www/agendazap/current /etc/agendazap /var/log/agendazap /var/www/certbot
+chown -R agendazap:www-data /var/www/agendazap /var/log/agendazap
+chmod 750 /etc/agendazap
+```
+
+## 4. Enviar codigo
+
+Recomendado via Git:
+
+```bash
+cd /var/www/agendazap
+git clone https://github.com/hermesacjunior/agendazap.git current
+cd current/agendazap
+```
+
+Se o repositorio for privado, configure uma chave SSH ou use deploy key.
+
+## 5. Criar ambiente Python
+
+```bash
+cd /var/www/agendazap/current/agendazap
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## 6. Criar banco PostgreSQL
+
+Entre no PostgreSQL:
+
+```bash
+sudo -u postgres psql
+```
+
+Crie usuario e banco, trocando a senha:
+
+```sql
+CREATE USER agendazap WITH PASSWORD 'SENHA_FORTE_AQUI';
+CREATE DATABASE agendazap OWNER agendazap;
+GRANT ALL PRIVILEGES ON DATABASE agendazap TO agendazap;
+\q
+```
+
+Crie as tabelas:
+
+```bash
+cd /var/www/agendazap/current/agendazap
+sudo -u postgres psql -d agendazap -f supabase/migrations/001_initial_schema.sql
+```
+
+## 7. Configurar variaveis de ambiente
+
+Crie o arquivo real:
+
+```bash
+sudo mkdir -p /etc/agendazap
+sudo cp deploy/env/agendazap.env.example /etc/agendazap/agendazap.env
+sudo nano /etc/agendazap/agendazap.env
+sudo chmod 640 /etc/agendazap/agendazap.env
+sudo chown root:www-data /etc/agendazap/agendazap.env
+```
+
+Configure pelo menos:
 
 ```env
 APP_URL=https://agendazapuap.com.br
@@ -19,53 +119,105 @@ ALLOWED_ORIGINS=https://agendazapuap.com.br,https://www.agendazapuap.com.br
 ALLOWED_HOSTS=agendazapuap.com.br,www.agendazapuap.com.br
 COOKIE_SECURE=true
 FORCE_HTTPS=true
-DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@HOST:5432/DBNAME
-JWT_SECRET=<valor-longo-aleatorio>
-SECRET_KEY=<valor-longo-aleatorio>
+DATABASE_URL=postgresql+asyncpg://agendazap:SENHA_FORTE_AQUI@127.0.0.1:5432/agendazap
+JWT_SECRET=CHAVE_LONGA_ALEATORIA_1
+SECRET_KEY=CHAVE_LONGA_ALEATORIA_2
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_BASIC_PRICE_ID=price_...
 STRIPE_PRO_PRICE_ID=price_...
 RESEND_API_KEY=re_...
 FROM_EMAIL=AgendaZap <noreply@agendazapuap.com.br>
-EVOLUTION_API_URL=https://...
-EVOLUTION_API_KEY=...
 ```
 
-4. Instale dependencias:
+Gere chaves seguras:
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-5. Crie o schema do banco executando `supabase/migrations/001_initial_schema.sql`.
-6. Valide as variaveis:
+## 8. Validar ambiente
 
 ```bash
-python scripts/check_env.py
+cd /var/www/agendazap/current/agendazap
+set -a
+. /etc/agendazap/agendazap.env
+set +a
+venv/bin/python scripts/check_env.py
 ```
 
-7. Rode o app com um process manager:
+Se aparecer erro de SQLite, corrija `DATABASE_URL`. Em producao precisa ser PostgreSQL.
+
+## 9. Instalar systemd
+
+Copie o servico:
 
 ```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+sudo cp deploy/systemd/agendazap.service /etc/systemd/system/agendazap.service
+sudo systemctl daemon-reload
+sudo systemctl enable agendazap
+sudo systemctl start agendazap
+sudo systemctl status agendazap
 ```
 
-8. Configure proxy reverso HTTPS do Apache/Nginx/cPanel para `127.0.0.1:8000`.
-9. Teste:
+Logs:
+
+```bash
+journalctl -u agendazap -f
+```
+
+## 10. Instalar Nginx inicial
+
+Antes de emitir SSL, use o proxy HTTP inicial:
+
+```bash
+sudo cp deploy/nginx/agendazap-http.conf /etc/nginx/sites-available/agendazap.conf
+sudo ln -s /etc/nginx/sites-available/agendazap.conf /etc/nginx/sites-enabled/agendazap.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 11. SSL HTTPS
+
+Depois que o DNS estiver apontando para a VPS:
+
+```bash
+sudo certbot --nginx -d agendazapuap.com.br -d www.agendazapuap.com.br
+```
+
+Depois de emitir o certificado, aplique o proxy HTTPS definitivo:
+
+```bash
+sudo cp deploy/nginx/agendazap.conf /etc/nginx/sites-available/agendazap.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Teste renovacao:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+## 12. Testes finais
 
 ```bash
 curl https://agendazapuap.com.br/health
+curl -I https://agendazapuap.com.br/auth/login
 ```
 
-## Stripe
-
-Webhook:
+Abra no navegador:
 
 ```text
-https://agendazapuap.com.br/webhooks/stripe
+https://agendazapuap.com.br/auth/login
+```
+
+## 13. Stripe
+
+Configure no painel Stripe:
+
+```text
+Webhook URL: https://agendazapuap.com.br/webhooks/stripe
 ```
 
 Eventos:
@@ -74,18 +226,25 @@ Eventos:
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 
-## cPanel compartilhado
+Copie o `whsec_...` para `STRIPE_WEBHOOK_SECRET`.
 
-Se o painel oferecer apenas Passenger/WSGI, nao suba direto sem validar suporte a ASGI. FastAPI nao e WSGI puro. Nesse caso, escolha uma das opcoes:
+## 14. Rotina de atualizacao
 
-- migrar o backend para VPS/servico Python com ASGI;
-- manter HostGator para DNS/site estatico e hospedar backend em Railway/Render/Fly;
-- usar adaptador ASGI->WSGI somente se o cPanel permitir instalar dependencias e a carga for baixa.
+```bash
+cd /var/www/agendazap/current
+git pull
+cd agendazap
+source venv/bin/activate
+pip install -r requirements.txt
+sudo systemctl restart agendazap
+sudo systemctl status agendazap
+```
 
-## Dados pessoais
+## 15. Seguranca operacional
 
-- Nunca envie `.env`, `*.db`, logs ou backups para o Git.
-- Ative backup automatico do banco.
-- Restrinja acesso ao banco por IP quando possivel.
-- Use HTTPS obrigatorio.
-- Rotacione `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` se algum valor for exposto.
+- Nunca coloque `.env`, `*.db`, logs ou backups no Git.
+- Use senha forte no PostgreSQL.
+- Ative firewall permitindo apenas SSH, HTTP e HTTPS.
+- Ative backup diario do banco.
+- Use acesso SSH por chave, nao senha, quando possivel.
+- Mantenha `JWT_SECRET`, `SECRET_KEY`, Stripe e Resend fora do repositorio.
