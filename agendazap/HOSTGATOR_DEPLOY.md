@@ -4,8 +4,8 @@ AgendaZap e um app FastAPI/ASGI. Para producao, use uma VPS Linux com SSH. Evite
 
 Este guia assume Ubuntu 22.04/24.04, Nginx, PostgreSQL local e dominio:
 
-- `agendazapuap.com.br`
 - `www.agendazapuap.com.br`
+- `api.agendazapuap.com.br`
 
 ## 1. DNS
 
@@ -14,6 +14,7 @@ No painel do dominio, aponte:
 ```text
 A     @      IP_DA_VPS
 A     www    IP_DA_VPS
+A     api    IP_DA_VPS
 ```
 
 A propagacao pode levar algumas horas.
@@ -112,11 +113,11 @@ sudo chown root:www-data /etc/agendazap/agendazap.env
 Configure pelo menos:
 
 ```env
-APP_URL=https://agendazapuap.com.br
-API_URL=https://agendazapuap.com.br
+APP_URL=https://www.agendazapuap.com.br
+API_URL=https://api.agendazapuap.com.br
 APP_ENV=production
-ALLOWED_ORIGINS=https://agendazapuap.com.br,https://www.agendazapuap.com.br
-ALLOWED_HOSTS=agendazapuap.com.br,www.agendazapuap.com.br
+ALLOWED_ORIGINS=https://www.agendazapuap.com.br,https://agendazapuap.com.br,https://api.agendazapuap.com.br
+ALLOWED_HOSTS=www.agendazapuap.com.br,agendazapuap.com.br,api.agendazapuap.com.br
 COOKIE_SECURE=true
 FORCE_HTTPS=true
 DATABASE_URL=postgresql+asyncpg://agendazap:SENHA_FORTE_AQUI@127.0.0.1:5432/agendazap
@@ -182,7 +183,7 @@ sudo systemctl reload nginx
 Depois que o DNS estiver apontando para a VPS:
 
 ```bash
-sudo certbot --nginx -d agendazapuap.com.br -d www.agendazapuap.com.br
+sudo certbot --nginx -d agendazapuap.com.br -d www.agendazapuap.com.br -d api.agendazapuap.com.br
 ```
 
 Depois de emitir o certificado, aplique o proxy HTTPS definitivo:
@@ -202,14 +203,14 @@ sudo certbot renew --dry-run
 ## 12. Testes finais
 
 ```bash
-curl https://agendazapuap.com.br/health
-curl -I https://agendazapuap.com.br/auth/login
+curl https://api.agendazapuap.com.br/health
+curl -I https://www.agendazapuap.com.br/auth/login
 ```
 
 Abra no navegador:
 
 ```text
-https://agendazapuap.com.br/auth/login
+https://www.agendazapuap.com.br/auth/login
 ```
 
 ## 13. Stripe
@@ -217,7 +218,7 @@ https://agendazapuap.com.br/auth/login
 Configure no painel Stripe:
 
 ```text
-Webhook URL: https://agendazapuap.com.br/webhooks/stripe
+Webhook URL: https://api.agendazapuap.com.br/webhooks/stripe
 ```
 
 Eventos:

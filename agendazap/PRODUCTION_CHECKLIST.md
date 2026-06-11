@@ -12,9 +12,10 @@
 
 ```env
 APP_ENV=production
-APP_URL=https://seudominio.com
-ALLOWED_ORIGINS=https://seudominio.com
-ALLOWED_HOSTS=seudominio.com,www.seudominio.com
+APP_URL=https://www.seudominio.com
+API_URL=https://api.seudominio.com
+ALLOWED_ORIGINS=https://www.seudominio.com,https://api.seudominio.com
+ALLOWED_HOSTS=www.seudominio.com,api.seudominio.com
 COOKIE_SECURE=true
 FORCE_HTTPS=true
 SECRET_KEY=chave-longa-aleatoria
@@ -34,7 +35,7 @@ DATABASE_URL=postgresql+asyncpg://usuario:senha@host:5432/agendazap
 ## Stripe
 
 - Configurar Price IDs recorrentes para Basic e Pro.
-- Configurar webhook em `https://seudominio.com/webhooks/stripe`.
+- Configurar webhook em `https://api.seudominio.com/webhooks/stripe`.
 - Eventos:
   - `checkout.session.completed`
   - `customer.subscription.updated`

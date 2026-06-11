@@ -1,13 +1,13 @@
 # Deploy AgendaZap
 
-Dominio principal: `https://agendazapuap.com.br`
+Dominio principal: `https://www.agendazapuap.com.br`
 API: `https://api.agendazapuap.com.br`
 
 ## 1. Supabase
 
 1. Crie um projeto no Supabase.
 2. Em SQL Editor, execute `supabase/migrations/001_initial_schema.sql`.
-3. Ative Auth por email e configure a URL do site como `https://agendazapuap.com.br`.
+3. Ative Auth por email e configure a URL do site como `https://www.agendazapuap.com.br`.
 4. Copie `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e a connection string PostgreSQL.
 5. Use a connection string async no backend: `postgresql+asyncpg://...`.
 
@@ -16,7 +16,7 @@ API: `https://api.agendazapuap.com.br`
 1. Crie um projeto Railway apontando para este repositorio.
 2. Configure o start command do `railway.json`.
 3. Adicione as variaveis:
-   - `APP_URL=https://agendazapuap.com.br`
+   - `APP_URL=https://www.agendazapuap.com.br`
    - `API_URL=https://api.agendazapuap.com.br`
    - `APP_ENV=production`
    - `ALLOWED_ORIGINS=https://www.agendazapuap.com.br,https://agendazapuap.com.br,https://api.agendazapuap.com.br`
@@ -33,9 +33,9 @@ API: `https://api.agendazapuap.com.br`
 O projeto atual ainda e server-rendered FastAPI. O `vercel.json` encaminha as rotas do app para a API no Railway ate existir um frontend Vite/React separado.
 
 1. Crie um projeto na Vercel apontando para este repositorio.
-2. Configure o dominio `agendazapuap.com.br`.
+2. Configure o dominio `www.agendazapuap.com.br` e redirecione o dominio raiz para `www`.
 3. Configure:
-   - `VITE_APP_URL=https://agendazapuap.com.br`
+   - `VITE_APP_URL=https://www.agendazapuap.com.br`
    - `VITE_API_URL=https://api.agendazapuap.com.br`
    - `NODE_ENV=production`
 4. Em DNS, aponte o dominio raiz e `www` para a Vercel conforme instrucoes da Vercel.
@@ -51,7 +51,7 @@ O projeto atual ainda e server-rendered FastAPI. O `vercel.json` encaminha as ro
 
 Webhook endpoint de producao:
 
-`https://agendazapuap.com.br/webhooks/stripe`
+`https://api.agendazapuap.com.br/webhooks/stripe`
 
 Eventos:
 
@@ -66,7 +66,7 @@ Depois de criar o webhook, copie o `STRIPE_WEBHOOK_SECRET` para o Railway.
 - `.env` nao versionado.
 - `DATABASE_URL` aponta para Supabase/Postgres, nao banco local.
 - `JWT_SECRET` longo e aleatorio.
-- `ALLOWED_ORIGINS` e `ALLOWED_HOSTS` restritos aos dominios oficiais.
+- `ALLOWED_ORIGINS` e `ALLOWED_HOSTS` restritos aos dominios oficiais `www` e `api`.
 - Logs nao exibem tokens, senhas, cookies ou chaves.
 - Stripe em modo live somente depois de testar checkout e webhook.
 - Resend com dominio verificado.

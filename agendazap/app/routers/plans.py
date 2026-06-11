@@ -18,7 +18,7 @@ install_template_security(templates)
 
 load_dotenv()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://agendazapuap.com.br")).rstrip("/")
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 
 PLANS = {
     "basic": {
