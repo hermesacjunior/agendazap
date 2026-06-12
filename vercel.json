@@ -2,11 +2,6 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.12"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
