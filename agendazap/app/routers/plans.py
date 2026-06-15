@@ -81,14 +81,17 @@ def render_plans(
     )
 
 
-@router.get("/", response_class=HTMLResponse)
+# Served at "/plans" (no trailing slash) to match vercel.json trailingSlash:false.
+# Using "/" here makes the path "/plans/", which FastAPI then 307-redirects to,
+# while Vercel 308-redirects "/plans/" back to "/plans" -> infinite redirect loop.
+@router.get("", response_class=HTMLResponse)
 async def plans_page(request: Request, current_user: User = Depends(require_user)):
     return render_plans(request, current_user)
 
 
 @router.get("/subscribe/{plan_slug}")
 async def subscribe_get(plan_slug: str):
-    return RedirectResponse(url="/plans/", status_code=302)
+    return RedirectResponse(url="/plans", status_code=302)
 
 
 @router.post("/subscribe/{plan_slug}")
@@ -133,7 +136,7 @@ async def create_checkout(
             line_items=[{"price": plan["stripe_price_id"], "quantity": 1}],
             mode="subscription",
             success_url=checkout_url("/plans/success?session_id={CHECKOUT_SESSION_ID}"),
-            cancel_url=checkout_url("/plans/"),
+            cancel_url=checkout_url("/plans"),
             metadata={"user_id": current_user.id, "plan": plan_slug},
         )
     except stripe.error.StripeError as exc:
@@ -176,7 +179,7 @@ async def billing_portal(
     try:
         session = stripe.billing_portal.Session.create(
             customer=current_user.stripe_customer_id,
-            return_url=checkout_url("/plans/"),
+            return_url=checkout_url("/plans"),
         )
     except stripe.error.StripeError as exc:
         message = exc.user_message or str(exc)
