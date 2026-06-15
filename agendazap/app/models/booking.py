@@ -31,7 +31,9 @@ class Booking(Base):
     start_datetime = Column(DateTime(timezone=True), nullable=False)
     end_datetime = Column(DateTime(timezone=True), nullable=False)
 
-    status = Column(SAEnum(BookingStatus), default=BookingStatus.confirmed)
+    # native_enum=False stores as VARCHAR+CHECK (no native PG type), so asyncpg
+    # needs no custom-type introspection — required for the Supabase transaction pooler.
+    status = Column(SAEnum(BookingStatus, native_enum=False, length=10), default=BookingStatus.confirmed)
 
     # Notificações enviadas
     whatsapp_sent_admin = Column(Boolean, default=False)

@@ -24,7 +24,9 @@ class User(Base):
     slug = Column(String(50), unique=True, nullable=False, index=True)
     bio = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
-    plan = Column(SAEnum(PlanType), default=PlanType.free)
+    # native_enum=False stores as VARCHAR+CHECK (no native PG type), so asyncpg
+    # needs no custom-type introspection — required for the Supabase transaction pooler.
+    plan = Column(SAEnum(PlanType, native_enum=False, length=5), default=PlanType.free)
     stripe_customer_id = Column(String(100), nullable=True)
     stripe_subscription_id = Column(String(100), nullable=True)
     evolution_instance = Column(String(100), nullable=True)
