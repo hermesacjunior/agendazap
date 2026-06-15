@@ -14,7 +14,16 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+# Supabase session pooler (port 5432): asyncpg keeps a dedicated backend per
+# connection, so prepared statements are safe (the transaction pooler on 6543
+# multiplexes backends and breaks asyncpg's named prepared statements).
+# pool_pre_ping revalidates connections that went stale while the Lambda was frozen.
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 
 AsyncSessionLocal = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
