@@ -1,0 +1,74 @@
+{% extends "admin/base.html" %}
+{% block title %}Admin Master — AgendaZap{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🛡️ Admin Master</h1>
+    <p class="page-subtitle">Gestão de toda a plataforma</p>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Usuários</div>
+    <div class="stat-value">{{ total_users }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Agendamentos (total)</div>
+    <div class="stat-value">{{ total_bookings }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Free / Basic / Pro</div>
+    <div class="stat-value" style="font-size: 22px">{{ plan_totals.free }} / {{ plan_totals.basic }} / {{ plan_totals.pro }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th>Plano</th>
+          <th>Status</th>
+          <th>Agend.</th>
+          <th>Criado em</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div style="font-weight: 500">{{ u.name }}{% if u.is_superadmin %} <span class="badge badge-accent">admin</span>{% endif %}</div>
+            <div style="font-size: 12px; color: var(--text-muted)">{{ u.email }}</div>
+          </td>
+          <td>
+            <form method="POST" action="/admin/super/users/{{ u.id }}/plan" style="display:flex; gap:6px; align-items:center">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+              <select name="plan" style="width:auto; padding:4px 8px">
+                <option value="free" {% if u.plan.value == 'free' %}selected{% endif %}>Free</option>
+                <option value="basic" {% if u.plan.value == 'basic' %}selected{% endif %}>Basic</option>
+                <option value="pro" {% if u.plan.value == 'pro' %}selected{% endif %}>Pro</option>
+              </select>
+              <button type="submit" class="btn btn-secondary btn-sm">Salvar</button>
+            </form>
+          </td>
+          <td>
+            {% if u.is_active %}
+            <span class="badge badge-green">Ativo</span>
+            {% else %}
+            <span class="badge badge-red">Inativo</span>
+            {% endif %}
+          </td>
+          <td>{{ booking_counts.get(u.id, 0) }}</td>
+          <td style="font-size: 13px; color: var(--text-muted)">{{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}</td>
+          <td><a href="/admin/super/users/{{ u.id }}" class="btn btn-secondary btn-sm">Ver histórico</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

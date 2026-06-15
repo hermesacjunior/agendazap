@@ -24,6 +24,7 @@ class User(Base):
     slug = Column(String(50), unique=True, nullable=False, index=True)
     bio = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
+    is_superadmin = Column(Boolean, default=False, nullable=False)
     # native_enum=False stores as VARCHAR+CHECK (no native PG type), so asyncpg
     # needs no custom-type introspection — required for the Supabase transaction pooler.
     plan = Column(SAEnum(PlanType, native_enum=False, length=5), default=PlanType.free)

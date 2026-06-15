@@ -13,7 +13,7 @@ import logging
 from dotenv import load_dotenv
 
 from app.database import create_tables
-from app.routers import auth, admin, booking, webhooks, plans, api
+from app.routers import auth, admin, booking, webhooks, plans, api, superadmin
 from app.security import is_allowed_origin, set_csrf_cookie, validate_csrf
 
 load_dotenv()
@@ -127,6 +127,7 @@ async def security_middleware(request: Request, call_next):
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(superadmin.router, prefix="/admin/super", tags=["superadmin"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(booking.router, prefix="/b", tags=["booking"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])

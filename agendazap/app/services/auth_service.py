@@ -127,3 +127,24 @@ async def require_user(
             headers={"Location": "/auth/login"}
         )
     return user
+
+
+# Bootstrap allowlist so the platform owner can never be locked out of the
+# super-admin panel even if the DB flag is cleared.
+SUPERADMIN_EMAILS = {
+    e.strip().lower() for e in os.getenv("SUPERADMIN_EMAILS", "").split(",") if e.strip()
+}
+
+
+def is_superadmin(user: User) -> bool:
+    return bool(getattr(user, "is_superadmin", False)) or (user.email or "").lower() in SUPERADMIN_EMAILS
+
+
+async def require_superadmin(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    user = await require_user(request, db)
+    if not is_superadmin(user):
+        raise HTTPException(status_code=403, detail="Acesso restrito ao administrador da plataforma.")
+    return user

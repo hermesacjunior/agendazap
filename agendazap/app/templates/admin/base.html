@@ -38,6 +38,11 @@
         <a href="/admin/profile" class="nav-item {% if '/profile' in request.url.path %}active{% endif %}">
           <span class="nav-icon">👤</span> Perfil
         </a>
+        {% if user.is_superadmin %}
+        <a href="/admin/super" class="nav-item {% if '/admin/super' in request.url.path %}active{% endif %}">
+          <span class="nav-icon">🛡️</span> Admin Master
+        </a>
+        {% endif %}
       </nav>
       <div class="sidebar-bottom">
         <div class="user-pill">
