@@ -14,7 +14,7 @@ from app.models.booking import Booking, BookingStatus
 from app.services.schedule_service import get_available_slots, get_month_availability
 from app.services.schedule_service import utc_to_brazil
 from app.services.whatsapp_service import notify_admin_new_booking
-from app.services.email_service import notify_admin_email
+from app.services.email_service import notify_admin_email, notify_client_email
 from app.security import clean_multiline, clean_phone, clean_text, install_template_security, require_csrf_token
 
 router = APIRouter()
@@ -293,6 +293,10 @@ async def create_booking(
         # Email para admin
         sent = await notify_admin_email(user.email, booking_data)
         booking.email_sent_admin = sent
+
+        # Email de confirmacao para o cliente
+        if client_email:
+            booking.email_sent_client = await notify_client_email(client_email, booking_data)
 
         await db.commit()
     except Exception:

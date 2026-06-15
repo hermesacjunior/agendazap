@@ -16,6 +16,7 @@ from app.models.booking import Booking, BookingStatus
 from app.services.auth_service import require_user
 from app.services.email_service import (
     notify_admin_cancellation_email,
+    notify_client_cancellation_email,
 )
 from app.services.schedule_service import utc_to_brazil
 from app.services.sms_service import notify_client_cancellation_sms
@@ -201,6 +202,11 @@ async def cancel_booking(
         booking.email_sent_admin = await notify_admin_cancellation_email(
             current_user.email, booking_data
         )
+
+        if booking.client_email:
+            booking.email_sent_client = await notify_client_cancellation_email(
+                booking.client_email, booking_data
+            )
 
         if current_user.plan.value == "pro":
             if current_user.whatsapp and current_user.evolution_instance and current_user.whatsapp_connected:
