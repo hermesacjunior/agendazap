@@ -1,5 +1,15 @@
 create extension if not exists "pgcrypto";
 
+-- Native enum types expected by the SQLAlchemy models (SAEnum(PlanType) / SAEnum(BookingStatus)).
+-- Without these the ORM emits casts like `status = $1::bookingstatus`, which fail against varchar columns.
+do $$ begin
+  create type plantype as enum ('free', 'basic', 'pro');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type bookingstatus as enum ('pending', 'confirmed', 'cancelled', 'completed');
+exception when duplicate_object then null; end $$;
+
 create table if not exists public.users (
   id varchar primary key default gen_random_uuid()::text,
   name varchar(100) not null,
@@ -9,7 +19,7 @@ create table if not exists public.users (
   slug varchar(50) not null unique,
   bio text,
   is_active boolean not null default true,
-  plan varchar(5) not null default 'free' check (plan in ('free', 'basic', 'pro')),
+  plan plantype not null default 'free',
   stripe_customer_id varchar(100),
   stripe_subscription_id varchar(100),
   evolution_instance varchar(100),
@@ -42,7 +52,7 @@ create table if not exists public.bookings (
   client_notes text,
   start_datetime timestamptz not null,
   end_datetime timestamptz not null,
-  status varchar(10) not null default 'confirmed' check (status in ('pending', 'confirmed', 'cancelled', 'completed')),
+  status bookingstatus not null default 'confirmed',
   whatsapp_sent_admin boolean not null default false,
   whatsapp_sent_client boolean not null default false,
   email_sent_admin boolean not null default false,
@@ -74,7 +84,7 @@ create index if not exists bookings_user_status_start_idx on public.bookings (us
 create index if not exists bookings_schedule_range_idx on public.bookings (schedule_id, start_datetime, end_datetime);
 create unique index if not exists bookings_active_slot_idx
 on public.bookings (schedule_id, start_datetime)
-where status <> 'cancelled';
+where status <> 'cancelled'::bookingstatus;
 
 insert into public.plans (
   slug,
