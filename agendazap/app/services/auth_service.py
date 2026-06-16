@@ -100,7 +100,8 @@ async def get_current_user(
     if supabase_is_configured() and "Authorization" in request.headers:
         supabase_user = await get_local_user_from_supabase_token(token, db)
         if supabase_user:
-            return supabase_user
+            # Conta desativada nao deve manter sessao valida, mesmo com token ok.
+            return supabase_user if supabase_user.is_active else None
 
     payload = decode_token(token)
     if not payload:
@@ -112,6 +113,10 @@ async def get_current_user(
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
+    # Sessao so e valida enquanto a conta estiver ativa (revoga acesso de
+    # usuarios desativados pelo super-admin sem esperar o token expirar).
+    if user and not user.is_active:
+        return None
     return user
 
 
