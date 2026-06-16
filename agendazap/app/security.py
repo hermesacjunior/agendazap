@@ -27,8 +27,19 @@ def get_csrf_token(request: Request) -> str:
     return token
 
 
+def brazil_datetime(dt, fmt: str = "%d/%m/%Y às %H:%M") -> str:
+    """Filtro Jinja: converte um datetime salvo em UTC para o fuso da agenda."""
+    if dt is None:
+        return "—"
+    # Import local para evitar ciclo de importacao no carregamento do modulo.
+    from app.services.schedule_service import utc_to_brazil
+
+    return utc_to_brazil(dt).strftime(fmt)
+
+
 def install_template_security(templates) -> None:
     templates.env.globals["csrf_token"] = get_csrf_token
+    templates.env.filters["brazil"] = brazil_datetime
 
 
 def csrf_cookie_secure(request: Request) -> bool:

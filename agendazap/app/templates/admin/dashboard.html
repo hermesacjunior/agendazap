@@ -60,7 +60,7 @@
         <div style="flex: 1">
           <div style="font-size: 14px; font-weight: 500">{{ booking.client_name }}</div>
           <div style="font-size: 12px; color: var(--text-muted)">
-            {{ booking.start_datetime.strftime('%d/%m/%Y às %H:%M') }}
+            {{ booking.start_datetime | brazil('%d/%m/%Y às %H:%M') }}
           </div>
         </div>
         <span class="badge badge-green">Confirmado</span>
