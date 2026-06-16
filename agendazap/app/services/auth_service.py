@@ -54,6 +54,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def create_access_token_for(user: User) -> str:
+    """Token de sessao que carrega a versao atual para permitir revogacao."""
+    return create_access_token({"sub": user.id, "ver": user.token_version or 0})
+
+
 def create_password_reset_token(user: User, expires_delta: Optional[timedelta] = None) -> str:
     expire = datetime.utcnow() + (expires_delta or timedelta(hours=1))
     return jwt.encode(
@@ -61,6 +66,9 @@ def create_password_reset_token(user: User, expires_delta: Optional[timedelta] =
             "sub": user.id,
             "email": user.email,
             "purpose": "password_reset",
+            # Atrela o token a versao atual: apos o reset incrementar a versao,
+            # este mesmo token deixa de valer (uso unico).
+            "ver": user.token_version or 0,
             "exp": expire,
         },
         SECRET_KEY,
@@ -113,9 +121,15 @@ async def get_current_user(
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
+    if not user:
+        return None
     # Sessao so e valida enquanto a conta estiver ativa (revoga acesso de
     # usuarios desativados pelo super-admin sem esperar o token expirar).
-    if user and not user.is_active:
+    if not user.is_active:
+        return None
+    # Versao do token: trocar a senha incrementa user.token_version e derruba
+    # todas as sessoes antigas. Tokens legados sem "ver" contam como 0.
+    if payload.get("ver", 0) != (user.token_version or 0):
         return None
     return user
 

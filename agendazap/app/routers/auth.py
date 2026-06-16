@@ -12,7 +12,7 @@ from app.models.user import User
 from app.services.auth_service import (
     verify_password,
     get_password_hash,
-    create_access_token,
+    create_access_token_for,
     create_password_reset_token,
     decode_password_reset_token,
     get_current_user,
@@ -63,7 +63,7 @@ async def login(
             "error": "Email ou senha inválidos"
         })
 
-    token = create_access_token({"sub": user.id})
+    token = create_access_token_for(user)
     response = RedirectResponse(url="/admin/dashboard", status_code=302)
     response.set_cookie(
         "access_token",
@@ -136,7 +136,7 @@ async def register(
     db.add(schedule)
     await db.commit()
 
-    token = create_access_token({"sub": user.id})
+    token = create_access_token_for(user)
     response = RedirectResponse(url="/admin/dashboard", status_code=302)
     response.set_cookie(
         "access_token",
@@ -236,7 +236,18 @@ async def reset_password(
             "error": "Usuario nao encontrado.",
         })
 
+    # Token de reset e de uso unico: se a versao nao bate, ele ja foi usado
+    # (ou a senha mudou por outro meio) e nao vale mais.
+    if payload.get("ver", 0) != (user.token_version or 0):
+        return templates.TemplateResponse("auth/reset_password.html", {
+            "request": request,
+            "error": "Link de recuperacao invalido ou expirado.",
+        })
+
     user.hashed_password = get_password_hash(password)
+    # Incrementa a versao: invalida este token de reset e todas as sessoes
+    # ativas, forcando login com a nova senha.
+    user.token_version = (user.token_version or 0) + 1
     await db.commit()
 
     return templates.TemplateResponse("auth/login.html", {

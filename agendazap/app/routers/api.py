@@ -1,7 +1,7 @@
 import os
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models.booking import Booking, BookingStatus
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.services.auth_service import create_access_token, get_current_user, get_password_hash, verify_password
+from app.services.auth_service import create_access_token_for, get_current_user, get_password_hash, verify_password
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
 
 router = APIRouter(prefix="/api")
@@ -92,6 +92,19 @@ async def require_api_user(
     return user
 
 
+def _iso_utc(dt: datetime | None) -> str | None:
+    """Serializa em ISO 8601 marcando UTC explicitamente.
+
+    Os horarios sao gravados como UTC ingenuo (sem tzinfo); sem o 'Z' um
+    cliente JS interpretaria como horario local e exibiria 3h adiantado.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.isoformat() + "Z"
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def _booking_to_dict(booking: Booking) -> dict[str, Any]:
     return {
         "id": booking.id,
@@ -100,10 +113,10 @@ def _booking_to_dict(booking: Booking) -> dict[str, Any]:
         "client_email": booking.client_email,
         "client_whatsapp": booking.client_whatsapp,
         "client_notes": booking.client_notes,
-        "start_datetime": booking.start_datetime.isoformat(),
-        "end_datetime": booking.end_datetime.isoformat(),
+        "start_datetime": _iso_utc(booking.start_datetime),
+        "end_datetime": _iso_utc(booking.end_datetime),
         "status": booking.status.value,
-        "created_at": booking.created_at.isoformat() if booking.created_at else None,
+        "created_at": _iso_utc(booking.created_at),
     }
 
 
@@ -120,7 +133,7 @@ async def api_login(payload: AuthLogin, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
     if not user or not user.is_active or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
-    return {"access_token": create_access_token({"sub": user.id}), "token_type": "bearer"}
+    return {"access_token": create_access_token_for(user), "token_type": "bearer"}
 
 
 @router.post("/auth/register", status_code=201)
@@ -153,7 +166,7 @@ async def api_register(payload: AuthRegister, db: AsyncSession = Depends(get_db)
         )
     )
     await db.commit()
-    return {"access_token": create_access_token({"sub": user.id}), "token_type": "bearer"}
+    return {"access_token": create_access_token_for(user), "token_type": "bearer"}
 
 
 @router.post("/auth/recover")

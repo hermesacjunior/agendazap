@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Text, Enum as SAEnum
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, Enum as SAEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -25,6 +25,9 @@ class User(Base):
     bio = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superadmin = Column(Boolean, default=False, nullable=False)
+    # Incrementado ao trocar a senha: invalida todos os JWTs antigos (logout
+    # global) e torna o token de reset de uso unico.
+    token_version = Column(Integer, default=0, nullable=False, server_default="0")
     # native_enum=False stores as VARCHAR+CHECK (no native PG type), so asyncpg
     # needs no custom-type introspection — required for the Supabase transaction pooler.
     plan = Column(SAEnum(PlanType, native_enum=False, length=5), default=PlanType.free)
