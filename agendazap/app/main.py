@@ -80,7 +80,12 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
-    if FORCE_HTTPS and request.url.scheme == "http" and request.url.hostname not in LOCAL_HOSTS:
+    if (
+        FORCE_HTTPS
+        and request.url.path != "/health"
+        and request.url.scheme == "http"
+        and request.url.hostname not in LOCAL_HOSTS
+    ):
         secure_url = request.url.replace(scheme="https")
         return RedirectResponse(str(secure_url), status_code=307)
 
