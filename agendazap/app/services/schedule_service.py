@@ -17,6 +17,29 @@ def utc_to_brazil(dt: datetime) -> datetime:
     return dt.astimezone(BRAZIL_TZ)
 
 
+def parse_blocks(blocked) -> tuple[set[str], dict[str, set[str]]]:
+    """Normaliza schedule.blocked_dates para (dias_inteiros, {data: horarios}).
+
+    Aceita o formato novo {"days": [...], "slots": {data: [horarios]}} e o
+    formato antigo (lista simples de datas = dias inteiros bloqueados).
+    """
+    if isinstance(blocked, dict):
+        days = blocked.get("days") or []
+        raw_slots = blocked.get("slots") or {}
+    elif isinstance(blocked, list):
+        days = blocked
+        raw_slots = {}
+    else:
+        days, raw_slots = [], {}
+
+    full_days = {str(d) for d in days}
+    slots = {
+        str(date): {str(t) for t in (times or [])}
+        for date, times in raw_slots.items()
+    }
+    return full_days, slots
+
+
 def get_available_slots(
     schedule: Schedule,
     target_date: date,
@@ -30,10 +53,13 @@ def get_available_slots(
     if not day_slots:
         return []
 
-    # Verifica se data está bloqueada
-    blocked = schedule.blocked_dates or []
-    if target_date.isoformat() in blocked:
+    iso_date = target_date.isoformat()
+
+    # Datas/horarios bloqueados manualmente pelo dono da agenda.
+    full_day_blocks, slot_blocks = parse_blocks(schedule.blocked_dates)
+    if iso_date in full_day_blocks:
         return []
+    blocked_times = slot_blocks.get(iso_date, set())
 
     # Verifica se data está no passado
     now = datetime.now(BRAZIL_TZ).date()
@@ -77,7 +103,7 @@ def get_available_slots(
                     current += slot_duration + buffer
                     continue
 
-            if slot_str not in booked_starts:
+            if slot_str not in booked_starts and slot_str not in blocked_times:
                 slots.append(slot_str)
 
             current += slot_duration + buffer

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from datetime import datetime, timedelta
 import json
+import re
 import uuid
 import logging
 import os
@@ -40,6 +41,43 @@ templates = Jinja2Templates(directory="app/templates")
 install_template_security(templates)
 logger = logging.getLogger(__name__)
 APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_TIME_RE = re.compile(r"^\d{2}:\d{2}$")
+
+
+def _parse_blocked_field(raw) -> dict:
+    """Valida o JSON de bloqueios vindo do formulario da agenda.
+
+    Estrutura: {"days": ["YYYY-MM-DD"], "slots": {"YYYY-MM-DD": ["HH:MM"]}}.
+    Descarta qualquer entrada malformada; dias inteiros tornam slots redundantes.
+    """
+    empty = {"days": [], "slots": {}}
+    if not raw:
+        return empty
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return empty
+    if not isinstance(data, dict):
+        return empty
+
+    days = sorted({
+        d for d in (data.get("days") or [])
+        if isinstance(d, str) and _DATE_RE.match(d)
+    })
+    slots: dict[str, list[str]] = {}
+    raw_slots = data.get("slots") or {}
+    if isinstance(raw_slots, dict):
+        for date, times in raw_slots.items():
+            if not (isinstance(date, str) and _DATE_RE.match(date)) or date in days:
+                continue
+            if not isinstance(times, list):
+                continue
+            valid = sorted({t for t in times if isinstance(t, str) and _TIME_RE.match(t)})
+            if valid:
+                slots[date] = valid
+    return {"days": days, "slots": slots}
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -144,6 +182,7 @@ async def save_schedule(
             availability[day] = [{"start": start, "end": end}]
 
     schedule.weekly_availability = availability
+    schedule.blocked_dates = _parse_blocked_field(data.get("blocked"))
     await db.commit()
 
     return RedirectResponse(url="/admin/dashboard?saved=1", status_code=302)

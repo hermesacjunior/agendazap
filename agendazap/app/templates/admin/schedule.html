@@ -109,7 +109,70 @@
       </button>
     </div>
   </div>
+
+  <div class="card" style="margin-top: 16px">
+    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Bloquear datas e horários</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
+      Clique em um dia para bloquear o dia inteiro ou horários específicos. Os bloqueios não aparecem para os clientes.
+      Lembre de clicar em <strong>Salvar Configurações</strong> para aplicar.
+    </p>
+
+    <input type="hidden" name="blocked" id="blockedField">
+
+    <div class="block-grid">
+      <div>
+        <div class="cal-header">
+          <button type="button" class="btn btn-secondary btn-sm" id="calPrev" aria-label="Mês anterior">‹</button>
+          <span id="calTitle"></span>
+          <button type="button" class="btn btn-secondary btn-sm" id="calNext" aria-label="Próximo mês">›</button>
+        </div>
+        <div class="cal-weekdays">
+          <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+        </div>
+        <div class="cal-days" id="calDays"></div>
+        <div class="cal-legend">
+          <span><i class="dot dot-full"></i> Dia bloqueado</span>
+          <span><i class="dot dot-partial"></i> Horários bloqueados</span>
+        </div>
+      </div>
+
+      <div id="dayPanel" class="day-panel">
+        <p style="color: var(--text-muted); font-size: 14px">Selecione um dia no calendário ao lado.</p>
+      </div>
+    </div>
+  </div>
 </form>
+
+<style>
+  .block-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 720px) { .block-grid { grid-template-columns: 1fr; } }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-header #calTitle { font-weight: 600; text-transform: capitalize; }
+  .cal-weekdays, .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-weekdays span { text-align: center; font-size: 11px; color: var(--text-muted); padding: 4px 0; }
+  .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+             border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid transparent;
+             background: var(--bg-input); position: relative; }
+  .cal-day:hover { border-color: var(--accent); }
+  .cal-day.empty { background: transparent; cursor: default; }
+  .cal-day.disabled { opacity: 0.25; cursor: not-allowed; }
+  .cal-day.disabled:hover { border-color: transparent; }
+  .cal-day.selected { outline: 2px solid var(--accent); }
+  .cal-day.full { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+  .cal-day .mark { width: 5px; height: 5px; border-radius: 50%; margin-top: 3px; background: transparent; }
+  .cal-day.partial .mark { background: #fb923c; }
+  .cal-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-muted); }
+  .cal-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .dot-full { background: rgba(239, 68, 68, 0.6); }
+  .dot-partial { background: #fb923c; }
+  .day-panel { background: var(--bg-input); border-radius: 10px; padding: 16px; min-height: 200px; }
+  .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin-top: 12px; }
+  .slot-chip { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px;
+               border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid var(--border, #2a2a2a);
+               background: var(--bg-card, #161616); user-select: none; }
+  .slot-chip.blocked { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border-color: rgba(239, 68, 68, 0.5); }
+  .slot-chip.disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
 {% endblock %}
 
 {% block scripts %}
@@ -118,6 +181,150 @@ function toggleDay(day, enabled) {
   const times = document.getElementById('times' + day);
   times.style.opacity = enabled ? '1' : '0.3';
   times.style.pointerEvents = enabled ? 'auto' : 'none';
+  if (typeof renderCalendar === 'function') { renderCalendar(); if (selectedDate) renderDayPanel(); }
 }
+
+// ===== Bloqueio de datas e horarios =====
+const MAX_ADVANCE = {{ schedule.max_advance_days if schedule else 30 }};
+const INITIAL_BLOCKS = {{ (schedule.blocked_dates if schedule and schedule.blocked_dates is not none else None) | tojson }};
+const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const WD_NAMES = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+
+const blocks = { days: new Set(), slots: {} };  // slots[iso] = Set(["HH:MM"])
+let viewYear, viewMonth, selectedDate = null;
+
+(function init(raw) {
+  if (!raw) return;
+  if (Array.isArray(raw)) { raw.forEach(d => blocks.days.add(d)); return; }
+  if (typeof raw === 'object') {
+    (raw.days || []).forEach(d => blocks.days.add(d));
+    const s = raw.slots || {};
+    Object.keys(s).forEach(d => { blocks.slots[d] = new Set(s[d] || []); });
+  }
+})(INITIAL_BLOCKS);
+
+function pad(n) { return String(n).padStart(2, '0'); }
+function isoOf(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
+function todayMidnight() { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+function toMin(s) { const [h, m] = s.split(':').map(Number); return h * 60 + m; }
+function fromMin(v) { return pad(Math.floor(v / 60)) + ':' + pad(v % 60); }
+
+// Gera os slots configurados para a data lendo o estado ATUAL do formulario.
+function configuredSlots(dateObj) {
+  const pyW = (dateObj.getDay() + 6) % 7;
+  const cb = document.getElementById('day' + pyW);
+  if (!cb || !cb.checked) return [];
+  const startEl = document.querySelector('[name="start_' + pyW + '"]');
+  const endEl = document.querySelector('[name="end_' + pyW + '"]');
+  if (!startEl || !endEl || !startEl.value || !endEl.value) return [];
+  const dur = parseInt(document.querySelector('[name="slot_duration"]').value) || 60;
+  const buf = parseInt(document.querySelector('[name="buffer_time"]').value) || 0;
+  const out = []; let cur = toMin(startEl.value); const end = toMin(endEl.value);
+  while (cur + dur <= end) { out.push(fromMin(cur)); cur += dur + buf; }
+  return out;
+}
+
+function syncField() {
+  const out = { days: Array.from(blocks.days).sort(), slots: {} };
+  Object.keys(blocks.slots).forEach(d => {
+    if (out.days.includes(d)) return;
+    const arr = Array.from(blocks.slots[d]).sort();
+    if (arr.length) out.slots[d] = arr;
+  });
+  document.getElementById('blockedField').value = JSON.stringify(out);
+}
+
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = MONTHS[viewMonth] + ' ' + viewYear;
+  const grid = document.getElementById('calDays');
+  grid.innerHTML = '';
+  const offset = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const today = todayMidnight();
+  const maxDate = new Date(today); maxDate.setDate(maxDate.getDate() + MAX_ADVANCE);
+
+  for (let i = 0; i < offset; i++) {
+    const e = document.createElement('div'); e.className = 'cal-day empty'; grid.appendChild(e);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = isoOf(viewYear, viewMonth, d);
+    const dateObj = new Date(viewYear, viewMonth, d);
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    const disabled = dateObj < today || dateObj > maxDate;
+    if (disabled) cell.classList.add('disabled');
+    if (blocks.days.has(iso)) cell.classList.add('full');
+    else if (blocks.slots[iso] && blocks.slots[iso].size) cell.classList.add('partial');
+    if (iso === selectedDate) cell.classList.add('selected');
+    cell.innerHTML = '<span>' + d + '</span><span class="mark"></span>';
+    if (!disabled) cell.addEventListener('click', () => { selectedDate = iso; renderCalendar(); renderDayPanel(); });
+    grid.appendChild(cell);
+  }
+}
+
+function renderDayPanel() {
+  const panel = document.getElementById('dayPanel');
+  if (!selectedDate) {
+    panel.innerHTML = '<p style="color:var(--text-muted);font-size:14px">Selecione um dia no calendário ao lado.</p>';
+    return;
+  }
+  const [y, m, d] = selectedDate.split('-').map(Number);
+  const dateObj = new Date(y, m - 1, d);
+  const fullDay = blocks.days.has(selectedDate);
+  const slots = configuredSlots(dateObj);
+
+  let html = '<div style="font-weight:600;margin-bottom:2px">' + pad(d) + '/' + pad(m) + '/' + y + '</div>'
+    + '<div style="font-size:12px;color:var(--text-muted);text-transform:capitalize;margin-bottom:14px">' + WD_NAMES[dateObj.getDay()] + '</div>'
+    + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">'
+    + '<input type="checkbox" id="fullDayChk"' + (fullDay ? ' checked' : '') + '> Bloquear o dia inteiro</label>';
+
+  if (!slots.length) {
+    html += '<p style="font-size:13px;color:var(--text-muted);margin-top:14px">Sem atendimento configurado nesse dia.</p>';
+  } else {
+    html += '<p style="font-size:13px;color:var(--text-muted);margin-top:16px;margin-bottom:0">Bloquear horários específicos:</p><div class="slot-grid">';
+    const blockedSet = blocks.slots[selectedDate] || new Set();
+    slots.forEach(t => {
+      const isBlocked = fullDay || blockedSet.has(t);
+      html += '<div class="slot-chip' + (isBlocked ? ' blocked' : '') + (fullDay ? ' disabled' : '') + '" data-time="' + t + '">' + t + '</div>';
+    });
+    html += '</div>';
+  }
+  panel.innerHTML = html;
+
+  document.getElementById('fullDayChk').addEventListener('change', (e) => {
+    if (e.target.checked) { blocks.days.add(selectedDate); delete blocks.slots[selectedDate]; }
+    else { blocks.days.delete(selectedDate); }
+    syncField(); renderCalendar(); renderDayPanel();
+  });
+  if (!fullDay) {
+    panel.querySelectorAll('.slot-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const t = chip.dataset.time;
+        if (!blocks.slots[selectedDate]) blocks.slots[selectedDate] = new Set();
+        if (blocks.slots[selectedDate].has(t)) blocks.slots[selectedDate].delete(t);
+        else blocks.slots[selectedDate].add(t);
+        if (!blocks.slots[selectedDate].size) delete blocks.slots[selectedDate];
+        syncField(); renderCalendar(); renderDayPanel();
+      });
+    });
+  }
+}
+
+document.getElementById('calPrev').addEventListener('click', () => { if (--viewMonth < 0) { viewMonth = 11; viewYear--; } renderCalendar(); });
+document.getElementById('calNext').addEventListener('click', () => { if (++viewMonth > 11) { viewMonth = 0; viewYear++; } renderCalendar(); });
+
+['slot_duration', 'buffer_time'].forEach(n => {
+  const el = document.querySelector('[name="' + n + '"]');
+  if (el) el.addEventListener('change', () => { if (selectedDate) renderDayPanel(); });
+});
+[0, 1, 2, 3, 4, 5, 6].forEach(n => ['start_', 'end_'].forEach(p => {
+  const el = document.querySelector('[name="' + p + n + '"]');
+  if (el) el.addEventListener('change', () => { if (selectedDate) renderDayPanel(); });
+}));
+
+(function start() {
+  const t = new Date(); viewYear = t.getFullYear(); viewMonth = t.getMonth();
+  syncField(); renderCalendar();
+})();
 </script>
 {% endblock %}
