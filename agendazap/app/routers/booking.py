@@ -96,8 +96,14 @@ async def _booking_from_cancel_token(db: AsyncSession, token: str) -> Booking | 
     booking_id = decode_booking_cancel_token(token)
     if not booking_id:
         return None
-    result = await db.execute(select(Booking).where(Booking.id == booking_id))
-    return result.scalar_one_or_none()
+    booking = (await db.execute(select(Booking).where(Booking.id == booking_id))).scalar_one_or_none()
+    if not booking:
+        return None
+    # Cancelamento self-service e recurso Pro: vale conforme o plano do dono.
+    owner = (await db.execute(select(User).where(User.id == booking.user_id))).scalar_one_or_none()
+    if not owner or owner.plan.value != "pro":
+        return None
+    return booking
 
 
 @router.get("/cancelar/{token}", response_class=HTMLResponse)
@@ -385,8 +391,11 @@ async def create_booking(
         "date": local_start.strftime("%d/%m/%Y"),
         "time": local_start.strftime("%H:%M"),
         "notes": notes,
-        # Link para o cliente cancelar sozinho (vai no e-mail de confirmacao).
-        "cancel_url": f"{APP_URL}/b/cancelar/{create_booking_cancel_token(booking.id)}",
+        # Link para o cliente cancelar sozinho (recurso Pro do dono da agenda).
+        "cancel_url": (
+            f"{APP_URL}/b/cancelar/{create_booking_cancel_token(booking.id)}"
+            if user.plan.value == "pro" else ""
+        ),
     }
 
     # Enviar notificações (não bloqueia se falhar)
@@ -439,7 +448,8 @@ async def booking_success(
             local_start = utc_to_brazil(booking.start_datetime)
             booking_date = local_start.strftime("%d/%m/%Y")
             booking_time = local_start.strftime("%H:%M")
-            cancel_token = create_booking_cancel_token(booking.id)
+            if user.plan.value == "pro":
+                cancel_token = create_booking_cancel_token(booking.id)
 
     return templates.TemplateResponse("public/success.html", {
         "request": request,
