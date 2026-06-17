@@ -71,13 +71,16 @@ def get_available_slots(
     if target_date > max_date:
         return []
 
-    # Coleta horários já agendados
-    booked_starts = set()
+    # Intervalos ja ocupados (agendamentos de clientes E compromissos do
+    # proprio dono), em horario local ingenuo, para checagem por sobreposicao.
+    booked_intervals = []
     for booking in existing_bookings:
-        if booking.status != BookingStatus.cancelled:
-            local_start = utc_to_brazil(booking.start_datetime)
-            if local_start.date() == target_date:
-                booked_starts.add(local_start.strftime("%H:%M"))
+        if booking.status == BookingStatus.cancelled:
+            continue
+        b_start = utc_to_brazil(booking.start_datetime).replace(tzinfo=None)
+        b_end = utc_to_brazil(booking.end_datetime).replace(tzinfo=None)
+        if b_start.date() == target_date or b_end.date() == target_date:
+            booked_intervals.append((b_start, b_end))
 
     slots = []
     slot_duration = timedelta(minutes=schedule.slot_duration)
@@ -103,7 +106,9 @@ def get_available_slots(
                     current += slot_duration + buffer
                     continue
 
-            if slot_str not in booked_starts and slot_str not in blocked_times:
+            slot_finish = current + slot_duration
+            is_booked = any(bs < slot_finish and be > current for bs, be in booked_intervals)
+            if not is_booked and slot_str not in blocked_times:
                 slots.append(slot_str)
 
             current += slot_duration + buffer

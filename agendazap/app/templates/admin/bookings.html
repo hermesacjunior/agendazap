@@ -9,6 +9,54 @@
   </div>
 </div>
 
+{% if request.query_params.get('created') %}<div class="alert alert-success">✅ Compromisso adicionado à sua agenda.</div>{% endif %}
+{% if request.query_params.get('err') == 'conflito' %}<div class="alert alert-error">Conflito de horário: já existe um agendamento nesse intervalo.</div>{% endif %}
+{% if request.query_params.get('err') == 'data' %}<div class="alert alert-error">Data ou hora inválida.</div>{% endif %}
+{% if request.query_params.get('err') == 'noagenda' %}<div class="alert alert-error">Selecione uma agenda válida.</div>{% endif %}
+
+<div class="card" style="margin-bottom: 16px">
+  <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Novo agendamento (seu)</h3>
+  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
+    Reserve um horário para você. Ele ocupa o espaço e <strong>não aparece para os clientes</strong>.
+  </p>
+  <form method="POST" action="/admin/bookings/new">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <div class="grid-2">
+      {% if schedules and schedules|length > 1 %}
+      <div class="form-group">
+        <label>Agenda</label>
+        <select name="schedule_id">
+          {% for s in schedules %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% elif schedules %}
+      <input type="hidden" name="schedule_id" value="{{ schedules[0].id }}">
+      {% endif %}
+      <div class="form-group">
+        <label>Título *</label>
+        <input type="text" name="title" placeholder="Ex.: Dentista, Reunião" required>
+      </div>
+      <div class="form-group">
+        <label>Data *</label>
+        <input type="date" name="date_str" required>
+      </div>
+      <div class="form-group">
+        <label>Hora *</label>
+        <input type="time" name="time_str" required>
+      </div>
+      <div class="form-group">
+        <label>Duração (min)</label>
+        <input type="number" name="duration" min="0" step="5" placeholder="padrão da agenda">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Observações (opcional)</label>
+      <textarea name="notes" placeholder="Detalhes do compromisso..."></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Adicionar à minha agenda</button>
+  </form>
+</div>
+
 <div class="card">
   {% if bookings %}
   <div class="table-wrapper">

@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import re
 import uuid
@@ -20,7 +20,7 @@ from app.services.email_service import (
     notify_client_cancellation_email,
     send_email,
 )
-from app.services.schedule_service import utc_to_brazil
+from app.services.schedule_service import BRAZIL_TZ, utc_to_brazil
 from app.services.sms_service import notify_client_cancellation_sms
 from app.services.whatsapp_service import (
     connect_instance,
@@ -272,13 +272,79 @@ async def bookings_list(
         .order_by(Booking.start_datetime.desc())
     )
     bookings = result.scalars().all()
+    schedules = await _user_schedules(db, current_user.id)
 
     return templates.TemplateResponse("admin/bookings.html", {
         "request": request,
         "user": current_user,
         "bookings": bookings,
+        "schedules": schedules,
         "app_url": APP_URL,
     })
+
+
+@router.post("/bookings/new")
+async def create_own_booking(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    data = await request.form()
+    require_csrf_token(request, str(data.get("csrf_token") or ""))
+    schedule_id = str(data.get("schedule_id") or "")
+    date_str = str(data.get("date_str") or "")
+    time_str = str(data.get("time_str") or "")
+    title = clean_text(data.get("title"), max_length=100, default="Compromisso")
+    notes = clean_multiline(data.get("notes"), max_length=1000)
+    duration = clean_int(data.get("duration"), default=0, minimum=0, maximum=1440)
+
+    # Resolve a agenda (precisa ser do proprio usuario).
+    schedule = None
+    if schedule_id:
+        result = await db.execute(
+            select(Schedule).where(and_(Schedule.id == schedule_id, Schedule.user_id == current_user.id))
+        )
+        schedule = result.scalar_one_or_none()
+    if schedule is None:
+        schedules = await _user_schedules(db, current_user.id)
+        schedule = schedules[0] if schedules else None
+    if schedule is None:
+        return RedirectResponse(url="/admin/bookings?err=noagenda", status_code=302)
+
+    try:
+        naive_start = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        local_start = BRAZIL_TZ.localize(naive_start)
+        minutes = duration or schedule.slot_duration
+        utc_start = local_start.astimezone(timezone.utc).replace(tzinfo=None)
+        utc_end = utc_start + timedelta(minutes=minutes)
+    except ValueError:
+        return RedirectResponse(url="/admin/bookings?err=data", status_code=302)
+
+    # Conflito por sobreposicao com qualquer agendamento ativo da mesma agenda.
+    result = await db.execute(
+        select(Booking).where(and_(
+            Booking.schedule_id == schedule.id,
+            Booking.start_datetime < utc_end,
+            Booking.end_datetime > utc_start,
+            Booking.status != BookingStatus.cancelled,
+        ))
+    )
+    if result.scalar_one_or_none():
+        return RedirectResponse(url="/admin/bookings?err=conflito", status_code=302)
+
+    booking = Booking(
+        user_id=current_user.id,
+        schedule_id=schedule.id,
+        client_name=title,
+        client_email=current_user.email,
+        client_notes=notes,
+        start_datetime=utc_start,
+        end_datetime=utc_end,
+        status=BookingStatus.confirmed,
+    )
+    db.add(booking)
+    await db.commit()
+    return RedirectResponse(url="/admin/bookings?created=1", status_code=302)
 
 
 @router.post("/bookings/{booking_id}/cancel")
