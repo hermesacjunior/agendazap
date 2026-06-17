@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 from time import time
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 import uvicorn
 import os
 import logging
@@ -57,10 +59,21 @@ def _rate_limit(request: Request) -> tuple[int, int] | None:
     return None
 
 
+scheduler = AsyncIOScheduler()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_tables()
-    yield
+    # Resumo diario: roda no minuto 0 de cada hora; o servico decide quem
+    # esta no horario escolhido (e nao reenvia no mesmo dia).
+    from app.services.reminder_service import run_daily_digests
+    scheduler.add_job(run_daily_digests, CronTrigger(minute=0), id="daily_digests", replace_existing=True)
+    scheduler.start()
+    try:
+        yield
+    finally:
+        scheduler.shutdown(wait=False)
 
 
 # Em producao, esconde a superficie da API (docs/OpenAPI) de quem sonda o sistema.

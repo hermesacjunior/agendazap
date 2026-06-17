@@ -38,6 +38,14 @@ class User(Base):
     # Notificacoes por e-mail para o dono da agenda (novos agendamentos /
     # cancelamentos). Ativo por padrao.
     email_notifications = Column(Boolean, default=True, nullable=False, server_default="true")
+
+    # Resumo diario dos compromissos do dia (opt-in). Canais e horario locais.
+    daily_digest_enabled = Column(Boolean, default=False, nullable=False, server_default="false")
+    daily_digest_hour = Column(Integer, default=7, nullable=False, server_default="7")
+    daily_digest_email = Column(Boolean, default=True, nullable=False, server_default="true")
+    daily_digest_whatsapp = Column(Boolean, default=False, nullable=False, server_default="false")
+    # Data (YYYY-MM-DD) do ultimo envio, para nao duplicar no mesmo dia.
+    daily_digest_last_sent = Column(String(10), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

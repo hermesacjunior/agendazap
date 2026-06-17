@@ -22,6 +22,7 @@ from app.services.email_service import (
     send_email,
 )
 from app.services.schedule_service import BRAZIL_TZ, utc_to_brazil
+from app.services.reminder_service import send_user_digest
 from app.services.sms_service import notify_client_cancellation_sms
 from app.services.whatsapp_service import (
     connect_instance,
@@ -661,8 +662,32 @@ async def save_profile(
     current_user.whatsapp = clean_phone(data.get("whatsapp") or current_user.whatsapp)
     current_user.bio = clean_multiline(data.get("bio"), max_length=1000)
     current_user.email_notifications = bool(data.get("email_notifications"))
+    current_user.daily_digest_enabled = bool(data.get("daily_digest_enabled"))
+    current_user.daily_digest_email = bool(data.get("daily_digest_email"))
+    current_user.daily_digest_whatsapp = bool(data.get("daily_digest_whatsapp"))
+    current_user.daily_digest_hour = clean_int(data.get("daily_digest_hour"), default=7, minimum=0, maximum=23)
     await db.commit()
     return RedirectResponse(url="/admin/profile?saved=1", status_code=302)
+
+
+@router.post("/profile/test-digest")
+async def test_digest(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    require_csrf_token(request, request.headers.get("x-csrf-token"))
+    try:
+        sent = await send_user_digest(db, current_user, force_email=True)
+    except Exception:
+        logger.exception("Erro ao enviar resumo de teste do usuario %s", current_user.id)
+        sent = False
+    if sent:
+        return JSONResponse({"ok": True})
+    return JSONResponse(
+        {"ok": False, "error": "Falha ao enviar. Verifique a configuracao de e-mail no servidor."},
+        status_code=502,
+    )
 
 
 @router.post("/profile/test-email")
