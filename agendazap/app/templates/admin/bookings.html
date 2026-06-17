@@ -13,7 +13,9 @@
 {% if request.query_params.get('err') == 'conflito' %}<div class="alert alert-error">Conflito de horário: já existe um agendamento nesse intervalo.</div>{% endif %}
 {% if request.query_params.get('err') == 'data' %}<div class="alert alert-error">Data ou hora inválida.</div>{% endif %}
 {% if request.query_params.get('err') == 'noagenda' %}<div class="alert alert-error">Selecione uma agenda válida.</div>{% endif %}
+{% if request.query_params.get('err') == 'pro' %}<div class="alert alert-error">💎 Agendar seus próprios compromissos é um recurso do plano <a href="/plans" style="color: var(--accent); font-weight: 600">Pro</a>.</div>{% endif %}
 
+{% if user.plan.value == 'pro' %}
 <div class="card" style="margin-bottom: 16px">
   <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Novo agendamento (seu)</h3>
   <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
@@ -56,6 +58,7 @@
     <button type="submit" class="btn btn-primary">Adicionar à minha agenda</button>
   </form>
 </div>
+{% endif %}
 
 <div class="card">
   {% if bookings %}

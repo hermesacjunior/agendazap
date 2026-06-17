@@ -116,6 +116,8 @@ async def run_daily_digests() -> None:
         )
         users = result.scalars().all()
         for user in users:
+            if user.plan.value != "pro":
+                continue
             if user.daily_digest_hour != now_local.hour or user.daily_digest_last_sent == today:
                 continue
             try:
@@ -174,6 +176,8 @@ async def run_appointment_reminders() -> None:
             )
         ).scalars().all()
         for user in users:
+            if user.plan.value != "pro":
+                continue
             window_end = now_utc + timedelta(hours=user.reminder_hours)
             result = await db.execute(
                 select(Booking).where(and_(

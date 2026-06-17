@@ -47,6 +47,7 @@
         </span>
       </div>
 
+      {% if user.plan.value == 'pro' %}
       <div class="form-group" style="border-top: 1px solid var(--border, #2a2a2a); padding-top: 16px">
         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer">
           <label class="toggle" style="margin: 0">
@@ -110,10 +111,15 @@
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 14px">
             <input type="checkbox" name="reminder_whatsapp" value="1" {% if user.reminder_whatsapp %}checked{% endif %}> WhatsApp
-            {% if user.plan.value != 'pro' %}<span style="font-size: 11px; color: var(--text-muted)">(Pro)</span>{% endif %}
           </label>
         </div>
       </div>
+      {% else %}
+      <div class="alert alert-info" style="margin-top: 16px">
+        💎 <strong>Resumo diário</strong> e <strong>lembretes automáticos</strong> (e-mail/WhatsApp) estão disponíveis no plano
+        <a href="/plans" style="color: var(--accent); font-weight: 600">Pro</a>.
+      </div>
+      {% endif %}
 
       <button type="submit" class="btn btn-primary btn-full">💾 Salvar Perfil</button>
     </form>
@@ -140,10 +146,12 @@
         ✉️ Enviar e-mail de teste
       </button>
       <div id="testEmailMsg" style="font-size: 13px; margin-top: 10px"></div>
+      {% if user.plan.value == 'pro' %}
       <button type="button" class="btn btn-secondary btn-full" id="testDigestBtn" onclick="sendTestDigest()" style="margin-top: 10px">
         📅 Enviar resumo do dia (teste)
       </button>
       <div id="testDigestMsg" style="font-size: 13px; margin-top: 10px"></div>
+      {% endif %}
     </div>
 
     <div class="card">

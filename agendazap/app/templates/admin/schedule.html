@@ -13,6 +13,8 @@
 {% if request.query_params.get('deleted') %}<div class="alert alert-success">Agenda excluída.</div>{% endif %}
 {% if request.query_params.get('err') == 'limit' %}<div class="alert alert-error">Você atingiu o limite de agendas do seu plano. Faça upgrade para o Pro para ter múltiplas agendas.</div>{% endif %}
 {% if request.query_params.get('err') == 'last' %}<div class="alert alert-error">Você precisa manter pelo menos uma agenda.</div>{% endif %}
+{% if request.query_params.get('err') == 'pro' %}<div class="alert alert-error">💎 Esse recurso está disponível no plano <a href="/plans" style="color: var(--accent); font-weight: 600">Pro</a>.</div>{% endif %}
+{% if request.query_params.get('shared') %}<div class="alert alert-success">🔗 Link de visualização gerado.</div>{% endif %}
 
 {% if max_schedules > 1 or (schedules and schedules|length > 1) %}
 <div class="card" style="margin-bottom: 16px">
@@ -147,6 +149,7 @@
     </div>
   </div>
 
+  {% if user.plan.value == 'pro' %}
   <div class="card" style="margin-top: 16px">
     <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Bloquear datas e horários</h3>
     <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
@@ -178,9 +181,18 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </form>
 
-{% if schedule %}
+{% if user.plan.value != 'pro' %}
+<div class="alert alert-info" style="margin-top: 16px">
+  💎 No plano <a href="/plans" style="color: var(--accent); font-weight: 600">Pro</a> você desbloqueia:
+  bloquear datas/horários, múltiplas agendas, compartilhar agenda, agendar seus próprios compromissos,
+  resumo diário e lembretes automáticos.
+</div>
+{% endif %}
+
+{% if schedule and user.plan.value == 'pro' %}
 <div class="card" style="margin-top: 16px">
   <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Compartilhar visualização</h3>
   <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
@@ -261,7 +273,9 @@ function toggleDay(day, enabled) {
   const times = document.getElementById('times' + day);
   times.style.opacity = enabled ? '1' : '0.3';
   times.style.pointerEvents = enabled ? 'auto' : 'none';
-  if (typeof renderCalendar === 'function') { renderCalendar(); if (selectedDate) renderDayPanel(); }
+  if (document.getElementById('calDays') && typeof renderCalendar === 'function') {
+    renderCalendar(); if (selectedDate) renderDayPanel();
+  }
 }
 
 // ===== Bloqueio de datas e horarios =====
@@ -390,21 +404,22 @@ function renderDayPanel() {
   }
 }
 
-document.getElementById('calPrev').addEventListener('click', () => { if (--viewMonth < 0) { viewMonth = 11; viewYear--; } renderCalendar(); });
-document.getElementById('calNext').addEventListener('click', () => { if (++viewMonth > 11) { viewMonth = 0; viewYear++; } renderCalendar(); });
+// Inicializa o calendario de bloqueios apenas se ele existir (recurso Pro).
+if (document.getElementById('calDays')) {
+  document.getElementById('calPrev').addEventListener('click', () => { if (--viewMonth < 0) { viewMonth = 11; viewYear--; } renderCalendar(); });
+  document.getElementById('calNext').addEventListener('click', () => { if (++viewMonth > 11) { viewMonth = 0; viewYear++; } renderCalendar(); });
 
-['slot_duration', 'buffer_time'].forEach(n => {
-  const el = document.querySelector('[name="' + n + '"]');
-  if (el) el.addEventListener('change', () => { if (selectedDate) renderDayPanel(); });
-});
-[0, 1, 2, 3, 4, 5, 6].forEach(n => ['start_', 'end_'].forEach(p => {
-  const el = document.querySelector('[name="' + p + n + '"]');
-  if (el) el.addEventListener('change', () => { if (selectedDate) renderDayPanel(); });
-}));
+  ['slot_duration', 'buffer_time'].forEach(n => {
+    const el = document.querySelector('[name="' + n + '"]');
+    if (el) el.addEventListener('change', () => { if (selectedDate) renderDayPanel(); });
+  });
+  [0, 1, 2, 3, 4, 5, 6].forEach(n => ['start_', 'end_'].forEach(p => {
+    const el = document.querySelector('[name="' + p + n + '"]');
+    if (el) el.addEventListener('change', () => { if (selectedDate) renderDayPanel(); });
+  }));
 
-(function start() {
   const t = new Date(); viewYear = t.getFullYear(); viewMonth = t.getMonth();
   syncField(); renderCalendar();
-})();
+}
 </script>
 {% endblock %}

@@ -143,6 +143,10 @@ def _max_schedules(user: User) -> int:
     return PLAN_SCHEDULE_LIMITS.get(user.plan.value, 1)
 
 
+def _is_pro(user: User) -> bool:
+    return user.plan.value == "pro"
+
+
 async def _user_schedules(db: AsyncSession, user_id: str) -> list[Schedule]:
     result = await db.execute(
         select(Schedule).where(Schedule.user_id == user_id).order_by(Schedule.created_at)
@@ -150,7 +154,7 @@ async def _user_schedules(db: AsyncSession, user_id: str) -> list[Schedule]:
     return list(result.scalars().all())
 
 
-def _apply_schedule_form(schedule: Schedule, data) -> None:
+def _apply_schedule_form(schedule: Schedule, data, allow_blocks: bool = True) -> None:
     schedule.name = clean_text(data.get("name"), max_length=100, default="Minha Agenda")
     schedule.slot_duration = clean_int(data.get("slot_duration"), default=60, minimum=15, maximum=240)
     schedule.buffer_time = clean_int(data.get("buffer_time"), default=0, minimum=0, maximum=120)
@@ -164,7 +168,9 @@ def _apply_schedule_form(schedule: Schedule, data) -> None:
                 "end": data.get(f"end_{day}", "18:00"),
             }]
     schedule.weekly_availability = availability
-    schedule.blocked_dates = _parse_blocked_field(data.get("blocked"))
+    # Bloqueio de datas/horarios e recurso Pro.
+    if allow_blocks:
+        schedule.blocked_dates = _parse_blocked_field(data.get("blocked"))
 
 
 @router.get("/schedule", response_class=HTMLResponse)
@@ -237,7 +243,7 @@ async def save_schedule(
             schedule = Schedule(user_id=current_user.id)
             db.add(schedule)
 
-    _apply_schedule_form(schedule, data)
+    _apply_schedule_form(schedule, data, allow_blocks=_is_pro(current_user))
     await db.commit()
     await db.refresh(schedule)
     return RedirectResponse(url=f"/admin/schedule?sid={schedule.id}&saved=1", status_code=302)
@@ -282,6 +288,8 @@ async def share_schedule(
 ):
     form = await request.form()
     require_csrf_token(request, str(form.get("csrf_token") or ""))
+    if not _is_pro(current_user):
+        return RedirectResponse(url="/admin/schedule?err=pro", status_code=302)
     schedule = await _own_schedule_or_404(db, current_user, schedule_id)
     schedule.share_token = secrets.token_urlsafe(24)
     await db.commit()
@@ -351,6 +359,8 @@ async def create_own_booking(
     if schedule is None:
         schedules = await _user_schedules(db, current_user.id)
         schedule = schedules[0] if schedules else None
+    if not _is_pro(current_user):
+        return RedirectResponse(url="/admin/bookings?err=pro", status_code=302)
     if schedule is None:
         return RedirectResponse(url="/admin/bookings?err=noagenda", status_code=302)
 
@@ -662,11 +672,13 @@ async def save_profile(
     current_user.whatsapp = clean_phone(data.get("whatsapp") or current_user.whatsapp)
     current_user.bio = clean_multiline(data.get("bio"), max_length=1000)
     current_user.email_notifications = bool(data.get("email_notifications"))
-    current_user.daily_digest_enabled = bool(data.get("daily_digest_enabled"))
+    # Resumo diario e lembretes sao recursos Pro: nao-Pro nunca fica ativo.
+    pro = _is_pro(current_user)
+    current_user.daily_digest_enabled = bool(data.get("daily_digest_enabled")) and pro
     current_user.daily_digest_email = bool(data.get("daily_digest_email"))
     current_user.daily_digest_whatsapp = bool(data.get("daily_digest_whatsapp"))
     current_user.daily_digest_hour = clean_int(data.get("daily_digest_hour"), default=7, minimum=0, maximum=23)
-    current_user.reminder_enabled = bool(data.get("reminder_enabled"))
+    current_user.reminder_enabled = bool(data.get("reminder_enabled")) and pro
     current_user.reminder_email = bool(data.get("reminder_email"))
     current_user.reminder_whatsapp = bool(data.get("reminder_whatsapp"))
     current_user.reminder_hours = clean_int(data.get("reminder_hours"), default=24, minimum=1, maximum=168)
@@ -681,6 +693,8 @@ async def test_digest(
     db: AsyncSession = Depends(get_db)
 ):
     require_csrf_token(request, request.headers.get("x-csrf-token"))
+    if not _is_pro(current_user):
+        return JSONResponse({"ok": False, "error": "Recurso disponível no plano Pro."}, status_code=403)
     try:
         sent = await send_user_digest(db, current_user, force_email=True)
     except Exception:
