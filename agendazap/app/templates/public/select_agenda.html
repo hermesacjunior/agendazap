@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar com {{ profile.name }} — AgendaZap</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div class="booking-page">
+  <div class="booking-header">
+    <div class="booking-avatar">{{ profile.name[0].upper() }}</div>
+    <h1 class="booking-name">{{ profile.name }}</h1>
+    {% if profile.bio %}
+    <p class="booking-bio">{{ profile.bio }}</p>
+    {% endif %}
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px">
+      Escolha o tipo de agenda para continuar
+    </p>
+  </div>
+
+  <div class="card" style="max-width: 480px; width: 100%">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      {% for s in schedules %}
+      <a href="/b/{{ profile.slug }}?agenda={{ s.id }}"
+         class="btn btn-secondary btn-full"
+         style="display: flex; justify-content: space-between; align-items: center; padding: 16px; text-align: left">
+        <span style="font-weight: 600">{{ s.name }}</span>
+        <span style="font-size: 12px; color: var(--text-muted)">{{ s.slot_duration }} min →</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <p style="font-size: 12px; color: var(--text-dim); margin-top: 32px">
+    Powered by <strong>AgendaZap</strong>
+  </p>
+</div>
+</body>
+</html>

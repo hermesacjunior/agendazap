@@ -63,10 +63,32 @@ async def basic_plan_has_reached_month_limit(user: User, target_start_utc: datet
     return (result.scalar() or 0) >= 100
 
 
+async def _active_schedules(db: AsyncSession, user_id: str) -> list[Schedule]:
+    result = await db.execute(
+        select(Schedule)
+        .where(Schedule.user_id == user_id, Schedule.is_active == True)
+        .order_by(Schedule.created_at)
+    )
+    return list(result.scalars().all())
+
+
+async def _pick_schedule(db: AsyncSession, user_id: str, schedule_id: str = "") -> Schedule | None:
+    """Resolve a agenda do fluxo publico.
+
+    Com id: a agenda correspondente (ou None se invalida). Sem id: a unica
+    agenda ativa, ou None quando ha varias (exige escolha) ou nenhuma.
+    """
+    schedules = await _active_schedules(db, user_id)
+    if schedule_id:
+        return next((s for s in schedules if s.id == schedule_id), None)
+    return schedules[0] if len(schedules) == 1 else None
+
+
 @router.get("/{slug}", response_class=HTMLResponse)
 async def public_booking_page(
     slug: str,
     request: Request,
+    agenda: str = "",
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(User).where(User.slug == slug, User.is_active == True))
@@ -75,20 +97,31 @@ async def public_booking_page(
     if not user:
         raise HTTPException(status_code=404, detail="Agenda não encontrada")
 
-    result = await db.execute(
-        select(Schedule).where(Schedule.user_id == user.id, Schedule.is_active == True)
-    )
-    schedule = result.scalar_one_or_none()
-
-    if not schedule:
+    schedules = await _active_schedules(db, user.id)
+    if not schedules:
         raise HTTPException(status_code=404, detail="Agenda não disponível")
+
+    if agenda:
+        selected = next((s for s in schedules if s.id == agenda), None)
+    elif len(schedules) == 1:
+        selected = schedules[0]
+    else:
+        selected = None
+
+    # Varias agendas e nenhuma escolhida: mostra o seletor.
+    if selected is None:
+        return templates.TemplateResponse("public/select_agenda.html", {
+            "request": request,
+            "profile": user,
+            "schedules": schedules,
+        })
 
     free_limit_reached = await free_plan_has_reached_limit(user, db)
 
     return templates.TemplateResponse("public/booking.html", {
         "request": request,
         "profile": user,
-        "schedule": schedule,
+        "schedule": selected,
         "free_limit_reached": free_limit_reached,
     })
 
@@ -97,6 +130,7 @@ async def public_booking_page(
 async def get_slots(
     slug: str,
     date_str: str,
+    schedule_id: str = "",
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(User).where(User.slug == slug))
@@ -104,10 +138,7 @@ async def get_slots(
     if not user:
         raise HTTPException(status_code=404)
 
-    result = await db.execute(
-        select(Schedule).where(Schedule.user_id == user.id, Schedule.is_active == True)
-    )
-    schedule = result.scalar_one_or_none()
+    schedule = await _pick_schedule(db, user.id, schedule_id)
     if not schedule:
         return JSONResponse({"slots": []})
 
@@ -137,6 +168,7 @@ async def get_availability(
     slug: str,
     year: int,
     month: int,
+    schedule_id: str = "",
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(User).where(User.slug == slug))
@@ -144,10 +176,7 @@ async def get_availability(
     if not user:
         raise HTTPException(status_code=404)
 
-    result = await db.execute(
-        select(Schedule).where(Schedule.user_id == user.id, Schedule.is_active == True)
-    )
-    schedule = result.scalar_one_or_none()
+    schedule = await _pick_schedule(db, user.id, schedule_id)
     if not schedule:
         return JSONResponse({"availability": {}})
 
@@ -168,6 +197,7 @@ async def create_booking(
     date_str: str = Form(...),
     time_str: str = Form(...),
     notes: str = Form(""),
+    schedule_id: str = Form(""),
     csrf_token: str = Form(""),
     db: AsyncSession = Depends(get_db)
 ):
@@ -182,12 +212,9 @@ async def create_booking(
     if not user:
         raise HTTPException(status_code=404)
 
-    result = await db.execute(
-        select(Schedule).where(Schedule.user_id == user.id, Schedule.is_active == True)
-    )
-    schedule = result.scalar_one_or_none()
+    schedule = await _pick_schedule(db, user.id, schedule_id)
     if not schedule:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404, detail="Agenda não encontrada")
 
     if await free_plan_has_reached_limit(user, db):
         return templates.TemplateResponse("public/booking.html", {

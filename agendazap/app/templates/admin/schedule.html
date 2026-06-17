@@ -9,8 +9,43 @@
   </div>
 </div>
 
+{% if request.query_params.get('saved') %}<div class="alert alert-success">✅ Agenda salva!</div>{% endif %}
+{% if request.query_params.get('deleted') %}<div class="alert alert-success">Agenda excluída.</div>{% endif %}
+{% if request.query_params.get('err') == 'limit' %}<div class="alert alert-error">Você atingiu o limite de agendas do seu plano. Faça upgrade para o Pro para ter múltiplas agendas.</div>{% endif %}
+{% if request.query_params.get('err') == 'last' %}<div class="alert alert-error">Você precisa manter pelo menos uma agenda.</div>{% endif %}
+
+{% if max_schedules > 1 or (schedules and schedules|length > 1) %}
+<div class="card" style="margin-bottom: 16px">
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+    <span style="font-size: 13px; color: var(--text-muted); margin-right: 4px">Suas agendas:</span>
+    {% for s in schedules %}
+    <a href="/admin/schedule?sid={{ s.id }}"
+       class="btn btn-sm {% if schedule and s.id == schedule.id %}btn-primary{% else %}btn-secondary{% endif %}">
+      {{ s.name }}
+    </a>
+    {% endfor %}
+    {% if can_add %}
+    <form method="POST" action="/admin/schedule/new" style="display: inline; margin: 0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <button type="submit" class="btn btn-sm btn-secondary">+ Nova agenda</button>
+    </form>
+    {% else %}
+    <span style="font-size: 12px; color: var(--text-muted)">Limite de {{ max_schedules }} agenda(s) atingido</span>
+    {% endif %}
+    {% if schedules and schedules|length > 1 and schedule %}
+    <form method="POST" action="/admin/schedule/{{ schedule.id }}/delete" style="display: inline; margin: 0 0 0 auto"
+          onsubmit="return confirm('Excluir a agenda &quot;{{ schedule.name }}&quot; e todos os agendamentos dela?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <button type="submit" class="btn btn-sm btn-danger">Excluir esta agenda</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <form method="POST" action="/admin/schedule">
   <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+  <input type="hidden" name="schedule_id" value="{{ schedule.id if schedule else '' }}">
   <div class="grid-2" style="align-items: start">
     <div style="display: flex; flex-direction: column; gap: 16px">
 
@@ -97,9 +132,11 @@
         </ul>
 
         <div style="margin-top: 20px; padding: 16px; background: var(--bg-input); border-radius: 8px">
-          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px">Seu link público:</p>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px">
+            {% if schedules and schedules|length > 1 %}Link desta agenda:{% else %}Seu link público:{% endif %}
+          </p>
           <code style="font-size: 12px; color: var(--accent); word-break: break-all">
-            {{ app_url }}/b/{{ user.slug }}
+            {{ app_url }}/b/{{ user.slug }}{% if schedules and schedules|length > 1 and schedule %}?agenda={{ schedule.id }}{% endif %}
           </code>
         </div>
       </div>

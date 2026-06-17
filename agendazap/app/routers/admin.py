@@ -133,22 +133,82 @@ async def dashboard(
     })
 
 
+# Limite de agendas por plano (a tabela Plan nao e usada para enforcement).
+PLAN_SCHEDULE_LIMITS = {"free": 1, "basic": 1, "pro": 20}
+
+
+def _max_schedules(user: User) -> int:
+    return PLAN_SCHEDULE_LIMITS.get(user.plan.value, 1)
+
+
+async def _user_schedules(db: AsyncSession, user_id: str) -> list[Schedule]:
+    result = await db.execute(
+        select(Schedule).where(Schedule.user_id == user_id).order_by(Schedule.created_at)
+    )
+    return list(result.scalars().all())
+
+
+def _apply_schedule_form(schedule: Schedule, data) -> None:
+    schedule.name = clean_text(data.get("name"), max_length=100, default="Minha Agenda")
+    schedule.slot_duration = clean_int(data.get("slot_duration"), default=60, minimum=15, maximum=240)
+    schedule.buffer_time = clean_int(data.get("buffer_time"), default=0, minimum=0, maximum=120)
+    schedule.max_advance_days = clean_int(data.get("max_advance_days"), default=30, minimum=1, maximum=365)
+
+    availability = {}
+    for day in ["0", "1", "2", "3", "4", "5", "6"]:
+        if data.get(f"day_{day}"):
+            availability[day] = [{
+                "start": data.get(f"start_{day}", "09:00"),
+                "end": data.get(f"end_{day}", "18:00"),
+            }]
+    schedule.weekly_availability = availability
+    schedule.blocked_dates = _parse_blocked_field(data.get("blocked"))
+
+
 @router.get("/schedule", response_class=HTMLResponse)
 async def schedule_config(
+    request: Request,
+    sid: str = "",
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    schedules = await _user_schedules(db, current_user.id)
+    selected = next((s for s in schedules if s.id == sid), None) if sid else None
+    if selected is None:
+        selected = schedules[0] if schedules else None
+    limit = _max_schedules(current_user)
+    return templates.TemplateResponse("admin/schedule.html", {
+        "request": request,
+        "user": current_user,
+        "schedule": selected,
+        "schedules": schedules,
+        "can_add": len(schedules) < limit,
+        "max_schedules": limit,
+        "app_url": APP_URL,
+    })
+
+
+@router.post("/schedule/new")
+async def new_schedule(
     request: Request,
     current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Schedule).where(Schedule.user_id == current_user.id)
+    form = await request.form()
+    require_csrf_token(request, str(form.get("csrf_token") or ""))
+    schedules = await _user_schedules(db, current_user.id)
+    if len(schedules) >= _max_schedules(current_user):
+        return RedirectResponse(url="/admin/schedule?err=limit", status_code=302)
+
+    schedule = Schedule(
+        user_id=current_user.id,
+        name=f"Agenda {len(schedules) + 1}",
+        weekly_availability={str(d): [{"start": "09:00", "end": "18:00"}] for d in range(5)},
     )
-    schedule = result.scalar_one_or_none()
-    return templates.TemplateResponse("admin/schedule.html", {
-        "request": request,
-        "user": current_user,
-        "schedule": schedule,
-        "app_url": APP_URL,
-    })
+    db.add(schedule)
+    await db.commit()
+    await db.refresh(schedule)
+    return RedirectResponse(url=f"/admin/schedule?sid={schedule.id}", status_code=302)
 
 
 @router.post("/schedule")
@@ -159,34 +219,46 @@ async def save_schedule(
 ):
     data = await request.form()
     require_csrf_token(request, str(data.get("csrf_token") or ""))
-    result = await db.execute(
-        select(Schedule).where(Schedule.user_id == current_user.id)
-    )
-    schedule = result.scalar_one_or_none()
+    schedule_id = str(data.get("schedule_id") or "")
 
-    if not schedule:
-        schedule = Schedule(user_id=current_user.id)
-        db.add(schedule)
+    schedule = None
+    if schedule_id:
+        result = await db.execute(
+            select(Schedule).where(and_(Schedule.id == schedule_id, Schedule.user_id == current_user.id))
+        )
+        schedule = result.scalar_one_or_none()
+    if schedule is None:
+        existing = await _user_schedules(db, current_user.id)
+        if existing and len(existing) >= _max_schedules(current_user):
+            schedule = existing[0]  # ja no limite: edita a primeira em vez de criar
+        else:
+            schedule = Schedule(user_id=current_user.id)
+            db.add(schedule)
 
-    schedule.name = clean_text(data.get("name"), max_length=100, default="Minha Agenda")
-    schedule.slot_duration = clean_int(data.get("slot_duration"), default=60, minimum=15, maximum=240)
-    schedule.buffer_time = clean_int(data.get("buffer_time"), default=0, minimum=0, maximum=120)
-    schedule.max_advance_days = clean_int(data.get("max_advance_days"), default=30, minimum=1, maximum=365)
-
-    # Parse availability
-    availability = {}
-    days = ["0", "1", "2", "3", "4", "5", "6"]
-    for day in days:
-        if data.get(f"day_{day}"):
-            start = data.get(f"start_{day}", "09:00")
-            end = data.get(f"end_{day}", "18:00")
-            availability[day] = [{"start": start, "end": end}]
-
-    schedule.weekly_availability = availability
-    schedule.blocked_dates = _parse_blocked_field(data.get("blocked"))
+    _apply_schedule_form(schedule, data)
     await db.commit()
+    await db.refresh(schedule)
+    return RedirectResponse(url=f"/admin/schedule?sid={schedule.id}&saved=1", status_code=302)
 
-    return RedirectResponse(url="/admin/dashboard?saved=1", status_code=302)
+
+@router.post("/schedule/{schedule_id}/delete")
+async def delete_schedule(
+    schedule_id: str,
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    form = await request.form()
+    require_csrf_token(request, str(form.get("csrf_token") or ""))
+    schedules = await _user_schedules(db, current_user.id)
+    if len(schedules) <= 1:
+        return RedirectResponse(url="/admin/schedule?err=last", status_code=302)
+    target = next((s for s in schedules if s.id == schedule_id), None)
+    if not target:
+        raise HTTPException(status_code=404)
+    await db.delete(target)  # cascade remove os agendamentos dessa agenda
+    await db.commit()
+    return RedirectResponse(url="/admin/schedule?deleted=1", status_code=302)
 
 
 @router.get("/bookings", response_class=HTMLResponse)
