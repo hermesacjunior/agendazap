@@ -38,6 +38,10 @@ RATE_LIMIT_BUCKETS: dict[tuple[str, str], list[float]] = {}
 
 
 def _client_ip(request: Request) -> str:
+    # Atras da Cloudflare, o IP real do visitante vem em CF-Connecting-IP.
+    cf_ip = request.headers.get("cf-connecting-ip")
+    if cf_ip:
+        return cf_ip.strip()
     forwarded_for = request.headers.get("x-forwarded-for")
     if forwarded_for:
         return forwarded_for.split(",")[0].strip()
