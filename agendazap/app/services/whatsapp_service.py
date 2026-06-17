@@ -257,6 +257,9 @@ async def delete_instance(instance_name: str) -> None:
 
 async def send_message(instance_name: str, to: str, message: str) -> bool:
     """Envia mensagem de texto via WhatsApp"""
+    if os.getenv("SAFE_MODE", "false").lower() == "true":
+        logger.info("SAFE_MODE ativo: WhatsApp para %s nao enviado", to)
+        return True
     try:
         number = format_whatsapp(to)
         async with httpx.AsyncClient(timeout=15) as client:

@@ -69,17 +69,22 @@ scheduler = AsyncIOScheduler()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_tables()
-    # Resumo diario: roda no minuto 0 de cada hora; o servico decide quem
-    # esta no horario escolhido (e nao reenvia no mesmo dia).
-    from app.services.reminder_service import run_daily_digests, run_appointment_reminders
-    scheduler.add_job(run_daily_digests, CronTrigger(minute=0), id="daily_digests", replace_existing=True)
-    # Lembretes por agendamento: verifica a cada 15 min quem entrou na janela.
-    scheduler.add_job(run_appointment_reminders, CronTrigger(minute="*/15"), id="appt_reminders", replace_existing=True)
-    scheduler.start()
+    # ENABLE_SCHEDULER=false desliga os jobs (ex.: staging, para nao duplicar
+    # resumos/lembretes contra o mesmo banco da producao).
+    scheduler_on = os.getenv("ENABLE_SCHEDULER", "true").lower() != "false"
+    if scheduler_on:
+        # Resumo diario: roda no minuto 0 de cada hora; o servico decide quem
+        # esta no horario escolhido (e nao reenvia no mesmo dia).
+        from app.services.reminder_service import run_daily_digests, run_appointment_reminders
+        scheduler.add_job(run_daily_digests, CronTrigger(minute=0), id="daily_digests", replace_existing=True)
+        # Lembretes por agendamento: verifica a cada 15 min quem entrou na janela.
+        scheduler.add_job(run_appointment_reminders, CronTrigger(minute="*/15"), id="appt_reminders", replace_existing=True)
+        scheduler.start()
     try:
         yield
     finally:
-        scheduler.shutdown(wait=False)
+        if scheduler_on:
+            scheduler.shutdown(wait=False)
 
 
 # Em producao, esconde a superficie da API (docs/OpenAPI) de quem sonda o sistema.

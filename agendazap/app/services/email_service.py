@@ -25,6 +25,9 @@ def _field(data: dict, key: str, default: str = "") -> str:
 
 
 async def send_email(to: str, subject: str, html: str) -> bool:
+    if os.getenv("SAFE_MODE", "false").lower() == "true":
+        logger.info("SAFE_MODE ativo: e-mail para %s nao enviado (%s)", to, subject)
+        return True
     if not _is_configured(RESEND_API_KEY, ("re_xxxxx",)):
         logger.warning("RESEND_API_KEY nao configurado, email nao enviado")
         return False
