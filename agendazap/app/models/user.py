@@ -46,6 +46,12 @@ class User(Base):
     daily_digest_whatsapp = Column(Boolean, default=False, nullable=False, server_default="false")
     # Data (YYYY-MM-DD) do ultimo envio, para nao duplicar no mesmo dia.
     daily_digest_last_sent = Column(String(10), nullable=True)
+
+    # Lembrete enviado ao CLIENTE X horas antes do agendamento (opt-in).
+    reminder_enabled = Column(Boolean, default=False, nullable=False, server_default="false")
+    reminder_hours = Column(Integer, default=24, nullable=False, server_default="24")
+    reminder_email = Column(Boolean, default=True, nullable=False, server_default="true")
+    reminder_whatsapp = Column(Boolean, default=False, nullable=False, server_default="false")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

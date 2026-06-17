@@ -38,6 +38,8 @@ class Booking(Base):
     # Notificações enviadas
     whatsapp_sent_admin = Column(Boolean, default=False)
     whatsapp_sent_client = Column(Boolean, default=False)
+    # Lembrete (X horas antes) ja enviado, para nao repetir.
+    reminder_sent = Column(Boolean, default=False, nullable=False, server_default="false")
     email_sent_admin = Column(Boolean, default=False)
     email_sent_client = Column(Boolean, default=False)
 

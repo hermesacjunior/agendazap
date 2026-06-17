@@ -666,6 +666,10 @@ async def save_profile(
     current_user.daily_digest_email = bool(data.get("daily_digest_email"))
     current_user.daily_digest_whatsapp = bool(data.get("daily_digest_whatsapp"))
     current_user.daily_digest_hour = clean_int(data.get("daily_digest_hour"), default=7, minimum=0, maximum=23)
+    current_user.reminder_enabled = bool(data.get("reminder_enabled"))
+    current_user.reminder_email = bool(data.get("reminder_email"))
+    current_user.reminder_whatsapp = bool(data.get("reminder_whatsapp"))
+    current_user.reminder_hours = clean_int(data.get("reminder_hours"), default=24, minimum=1, maximum=168)
     await db.commit()
     return RedirectResponse(url="/admin/profile?saved=1", status_code=302)
 

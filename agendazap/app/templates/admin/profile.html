@@ -80,6 +80,41 @@
         </div>
       </div>
 
+      <div class="form-group" style="border-top: 1px solid var(--border, #2a2a2a); padding-top: 16px">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer">
+          <label class="toggle" style="margin: 0">
+            <input type="checkbox" name="reminder_enabled" value="1" {% if user.reminder_enabled %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Lembrar o cliente antes do agendamento</span>
+        </label>
+        <span style="font-size: 12px; color: var(--text-muted)">
+          Envia um lembrete ao cliente algumas horas antes do horário marcado.
+        </span>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Enviar com antecedência de</label>
+          <select name="reminder_hours">
+            {% for h in [1, 2, 3, 6, 12, 24, 48, 72] %}
+            <option value="{{ h }}" {% if user.reminder_hours == h %}selected{% endif %}>
+              {% if h < 24 %}{{ h }} hora(s){% else %}{{ (h / 24) | int }} dia(s){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Canais do lembrete</label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 6px">
+            <input type="checkbox" name="reminder_email" value="1" {% if user.reminder_email %}checked{% endif %}> E-mail
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px">
+            <input type="checkbox" name="reminder_whatsapp" value="1" {% if user.reminder_whatsapp %}checked{% endif %}> WhatsApp
+            {% if user.plan.value != 'pro' %}<span style="font-size: 11px; color: var(--text-muted)">(Pro)</span>{% endif %}
+          </label>
+        </div>
+      </div>
+
       <button type="submit" class="btn btn-primary btn-full">💾 Salvar Perfil</button>
     </form>
   </div>

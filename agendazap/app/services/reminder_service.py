@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime, timedelta
 from html import escape
 
@@ -12,8 +13,10 @@ from app.models.booking import Booking, BookingStatus
 from app.services.schedule_service import BRAZIL_TZ, utc_to_brazil
 from app.services.email_service import send_email
 from app.services.whatsapp_service import send_message
+from app.services.auth_service import create_booking_cancel_token
 
 logger = logging.getLogger(__name__)
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 
 
 async def _today_items(db, user: User):
@@ -120,4 +123,71 @@ async def run_daily_digests() -> None:
             except Exception:
                 logger.exception("Falha ao enviar resumo diario do usuario %s", user.id)
             user.daily_digest_last_sent = today
+        await db.commit()
+
+
+async def _send_appointment_reminder(db, user: User, booking: Booking) -> None:
+    local = utc_to_brazil(booking.start_datetime)
+    date_str = local.strftime("%d/%m/%Y")
+    time_str = local.strftime("%H:%M")
+    cancel_url = f"{APP_URL}/b/cancelar/{create_booking_cancel_token(booking.id)}"
+
+    if user.reminder_email and booking.client_email:
+        html = (
+            "<div style='font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px'>"
+            "<h2 style='color:#1a1a2e'>Lembrete do seu agendamento</h2>"
+            f"<p>Olá, <strong>{escape(booking.client_name)}</strong>!</p>"
+            "<div style='background:#f0fff4;border-left:4px solid #38a169;border-radius:4px;padding:20px;margin:20px 0'>"
+            f"<p><strong>Data:</strong> {escape(date_str)}</p>"
+            f"<p><strong>Horario:</strong> {escape(time_str)}</p>"
+            f"<p><strong>Com:</strong> {escape(user.name)}</p></div>"
+            f"<p style='text-align:center;margin:24px 0'><a href='{escape(cancel_url)}' style='color:#e53e3e;font-size:14px'>Precisa cancelar? Clique aqui</a></p>"
+            "<p style='color:#666;font-size:12px'>AgendaZap - Sistema de Agendamentos</p></div>"
+        )
+        await send_email(booking.client_email, f"Lembrete: agendamento {date_str} às {time_str}", html)
+
+    if (
+        user.reminder_whatsapp
+        and user.plan.value == "pro"
+        and user.evolution_instance
+        and user.whatsapp_connected
+        and booking.client_whatsapp
+    ):
+        msg = (
+            "⏰ *Lembrete de agendamento*\n\n"
+            f"Olá, *{booking.client_name}*!\n"
+            "Você tem um horário marcado:\n"
+            f"🗓️ *Data:* {date_str}\n⏰ *Horário:* {time_str}\n👤 *Com:* {user.name}\n\n"
+            "_AgendaZap_"
+        )
+        await send_message(user.evolution_instance, booking.client_whatsapp, msg)
+
+
+async def run_appointment_reminders() -> None:
+    """Job frequente: envia lembrete aos clientes cujos agendamentos entram na
+    janela de X horas configurada pelo dono, sem repetir (reminder_sent)."""
+    async with AsyncSessionLocal() as db:
+        now_utc = datetime.utcnow()
+        users = (
+            await db.execute(
+                select(User).where(User.reminder_enabled == True, User.is_active == True)  # noqa: E712
+            )
+        ).scalars().all()
+        for user in users:
+            window_end = now_utc + timedelta(hours=user.reminder_hours)
+            result = await db.execute(
+                select(Booking).where(and_(
+                    Booking.user_id == user.id,
+                    Booking.status == BookingStatus.confirmed,
+                    Booking.reminder_sent == False,  # noqa: E712
+                    Booking.start_datetime > now_utc,
+                    Booking.start_datetime <= window_end,
+                ))
+            )
+            for booking in result.scalars().all():
+                try:
+                    await _send_appointment_reminder(db, user, booking)
+                except Exception:
+                    logger.exception("Falha no lembrete do agendamento %s", booking.id)
+                booking.reminder_sent = True
         await db.commit()

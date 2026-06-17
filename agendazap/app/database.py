@@ -63,5 +63,10 @@ async def create_tables():
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_digest_email boolean NOT NULL DEFAULT true",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_digest_whatsapp boolean NOT NULL DEFAULT false",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_digest_last_sent varchar(10)",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_enabled boolean NOT NULL DEFAULT false",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_hours integer NOT NULL DEFAULT 24",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_email boolean NOT NULL DEFAULT true",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS reminder_whatsapp boolean NOT NULL DEFAULT false",
+                "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminder_sent boolean NOT NULL DEFAULT false",
             ):
                 await conn.execute(text(ddl))
