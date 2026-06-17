@@ -34,6 +34,18 @@
         <label>Bio (aparece na sua página pública)</label>
         <textarea name="bio" placeholder="Descreva brevemente o que você faz...">{{ user.bio or '' }}</textarea>
       </div>
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer">
+          <label class="toggle" style="margin: 0">
+            <input type="checkbox" name="email_notifications" value="1" {% if user.email_notifications %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Receber notificações por e-mail</span>
+        </label>
+        <span style="font-size: 12px; color: var(--text-muted)">
+          Avisa você em <strong>{{ user.email }}</strong> a cada novo agendamento ou cancelamento.
+        </span>
+      </div>
       <button type="submit" class="btn btn-primary btn-full">💾 Salvar Perfil</button>
     </form>
   </div>
@@ -48,6 +60,17 @@
       <a href="/b/{{ user.slug }}" target="_blank" class="btn btn-secondary btn-full mt-4" style="margin-top: 12px">
         🔗 Visualizar Página Pública
       </a>
+    </div>
+
+    <div class="card">
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">Notificações por e-mail</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+        Envie um e-mail de teste para <strong>{{ user.email }}</strong> e confirme que está recebendo.
+      </p>
+      <button type="button" class="btn btn-secondary btn-full" id="testEmailBtn" onclick="sendTestEmail()">
+        ✉️ Enviar e-mail de teste
+      </button>
+      <div id="testEmailMsg" style="font-size: 13px; margin-top: 10px"></div>
     </div>
 
     <div class="card">
@@ -69,6 +92,8 @@
 
 {% block scripts %}
 <script>
+const csrfToken = "{{ csrf_token(request) }}";
+
 function copyLink() {
   const input = document.getElementById('linkInput');
   navigator.clipboard.writeText(input.value).then(() => {
@@ -76,6 +101,35 @@ function copyLink() {
     btn.textContent = '✓ Copiado!';
     setTimeout(() => btn.textContent = 'Copiar', 2000);
   });
+}
+
+async function sendTestEmail() {
+  const btn = document.getElementById('testEmailBtn');
+  const msg = document.getElementById('testEmailMsg');
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Enviando...';
+  msg.textContent = '';
+  try {
+    const res = await fetch('/admin/profile/test-email', {
+      method: 'POST',
+      headers: { 'x-csrf-token': csrfToken }
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      msg.style.color = 'var(--green, #38a169)';
+      msg.textContent = '✓ E-mail de teste enviado. Verifique sua caixa de entrada (e o spam).';
+    } else {
+      msg.style.color = 'var(--red, #e53e3e)';
+      msg.textContent = data.error || 'Não foi possível enviar o e-mail de teste.';
+    }
+  } catch (e) {
+    msg.style.color = 'var(--red, #e53e3e)';
+    msg.textContent = 'Erro de rede ao enviar o e-mail de teste.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 </script>
 {% endblock %}

@@ -35,6 +35,9 @@ class User(Base):
     stripe_subscription_id = Column(String(100), nullable=True)
     evolution_instance = Column(String(100), nullable=True)
     whatsapp_connected = Column(Boolean, default=False)
+    # Notificacoes por e-mail para o dono da agenda (novos agendamentos /
+    # cancelamentos). Ativo por padrao.
+    email_notifications = Column(Boolean, default=True, nullable=False, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

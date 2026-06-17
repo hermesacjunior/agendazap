@@ -46,3 +46,11 @@ async def create_tables():
     from app.models import user, schedule, booking, plan  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # create_all nao altera tabelas existentes; garante colunas novas no
+        # Postgres (Supabase) de forma idempotente. No SQLite local a coluna ja
+        # vem do create_all, entao nao roda o ALTER.
+        if engine.dialect.name == "postgresql":
+            await conn.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
+                "email_notifications boolean NOT NULL DEFAULT true"
+            ))

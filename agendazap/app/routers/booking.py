@@ -290,9 +290,9 @@ async def create_booking(
             )
             booking.whatsapp_sent_admin = sent
 
-        # Email para admin
-        sent = await notify_admin_email(user.email, booking_data)
-        booking.email_sent_admin = sent
+        # Email para admin (respeita a preferencia do dono da agenda)
+        if user.email_notifications:
+            booking.email_sent_admin = await notify_admin_email(user.email, booking_data)
 
         # Email de confirmacao para o cliente
         if client_email:

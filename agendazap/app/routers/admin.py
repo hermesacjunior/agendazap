@@ -18,6 +18,7 @@ from app.services.auth_service import require_user
 from app.services.email_service import (
     notify_admin_cancellation_email,
     notify_client_cancellation_email,
+    send_email,
 )
 from app.services.schedule_service import utc_to_brazil
 from app.services.sms_service import notify_client_cancellation_sms
@@ -238,9 +239,10 @@ async def cancel_booking(
     }
 
     try:
-        booking.email_sent_admin = await notify_admin_cancellation_email(
-            current_user.email, booking_data
-        )
+        if current_user.email_notifications:
+            booking.email_sent_admin = await notify_admin_cancellation_email(
+                current_user.email, booking_data
+            )
 
         if booking.client_email:
             booking.email_sent_client = await notify_client_cancellation_email(
@@ -478,5 +480,32 @@ async def save_profile(
     current_user.name = clean_text(data.get("name"), max_length=100, default=current_user.name)
     current_user.whatsapp = clean_phone(data.get("whatsapp") or current_user.whatsapp)
     current_user.bio = clean_multiline(data.get("bio"), max_length=1000)
+    current_user.email_notifications = bool(data.get("email_notifications"))
     await db.commit()
     return RedirectResponse(url="/admin/profile?saved=1", status_code=302)
+
+
+@router.post("/profile/test-email")
+async def test_email(
+    request: Request,
+    current_user: User = Depends(require_user),
+):
+    require_csrf_token(request, request.headers.get("x-csrf-token"))
+    html = (
+        "<div style=\"font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">"
+        "<h2 style=\"color:#1a1a2e;\">E-mail de teste do AgendaZap</h2>"
+        f"<p>Ola, <strong>{current_user.name}</strong>! Se voce recebeu este e-mail, "
+        "as notificacoes por e-mail estao funcionando.</p>"
+        "<p style=\"color:#666;font-size:12px;\">AgendaZap - Sistema de Agendamentos</p></div>"
+    )
+    sent = await send_email(
+        to=current_user.email,
+        subject="Teste de notificacao - AgendaZap",
+        html=html,
+    )
+    if sent:
+        return JSONResponse({"ok": True})
+    return JSONResponse(
+        {"ok": False, "error": "Falha ao enviar. Verifique a configuracao de e-mail (Resend) no servidor."},
+        status_code=502,
+    )
