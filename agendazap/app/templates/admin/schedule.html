@@ -180,6 +180,39 @@
   </div>
 </form>
 
+{% if schedule %}
+<div class="card" style="margin-top: 16px">
+  <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Compartilhar visualização</h3>
+  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
+    Gere um link <strong>somente leitura</strong> para alguém ver a disponibilidade desta agenda
+    (<strong>{{ schedule.name }}</strong>). O link não permite agendar e não expõe nenhum dado dos seus clientes.
+  </p>
+  {% if schedule.share_token %}
+  <div class="link-box">
+    <input type="text" id="shareLink" value="{{ app_url }}/share/{{ schedule.share_token }}" readonly>
+    <button class="btn btn-sm btn-secondary" type="button" onclick="copyShare()">Copiar</button>
+  </div>
+  <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap">
+    <a href="/share/{{ schedule.share_token }}" target="_blank" class="btn btn-sm btn-secondary">🔗 Abrir</a>
+    <form method="POST" action="/admin/schedule/{{ schedule.id }}/share" style="margin: 0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <button class="btn btn-sm btn-secondary" type="submit">Gerar novo link</button>
+    </form>
+    <form method="POST" action="/admin/schedule/{{ schedule.id }}/unshare" style="margin: 0"
+          onsubmit="return confirm('Desativar o link? Quem já tiver o link perde o acesso.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <button class="btn btn-sm btn-danger" type="submit">Desativar</button>
+    </form>
+  </div>
+  {% else %}
+  <form method="POST" action="/admin/schedule/{{ schedule.id }}/share" style="margin: 0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <button class="btn btn-secondary" type="submit">🔗 Gerar link de visualização</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
 <style>
   .block-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
   @media (max-width: 720px) { .block-grid { grid-template-columns: 1fr; } }
@@ -214,6 +247,16 @@
 
 {% block scripts %}
 <script>
+function copyShare() {
+  const input = document.getElementById('shareLink');
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = event.target;
+    const original = btn.textContent;
+    btn.textContent = '✓ Copiado!';
+    setTimeout(() => btn.textContent = original, 2000);
+  });
+}
+
 function toggleDay(day, enabled) {
   const times = document.getElementById('times' + day);
   times.style.opacity = enabled ? '1' : '0.3';

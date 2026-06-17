@@ -25,6 +25,10 @@ class Schedule(Base):
     # Datas bloqueadas manualmente
     blocked_dates = Column(JSON, default=list)
 
+    # Token para compartilhar uma visualizacao read-only desta agenda (sem
+    # expor dados dos clientes). Nulo = nao compartilhada.
+    share_token = Column(String(64), nullable=True, index=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

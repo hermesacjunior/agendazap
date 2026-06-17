@@ -13,7 +13,7 @@ import logging
 from dotenv import load_dotenv
 
 from app.database import create_tables
-from app.routers import auth, admin, booking, webhooks, plans, api, superadmin
+from app.routers import auth, admin, booking, webhooks, plans, api, superadmin, share
 from app.security import is_allowed_origin, set_csrf_cookie, validate_csrf
 
 load_dotenv()
@@ -43,13 +43,17 @@ def _client_ip(request: Request) -> str:
 
 
 def _rate_limit(request: Request) -> tuple[int, int] | None:
-    if request.method != "POST":
-        return None
     path = request.url.path
-    if path in {"/auth/login", "/auth/register", "/api/auth/login", "/api/auth/register"}:
-        return (10, 15 * 60)
-    if path.endswith("/book") and path.startswith("/b/"):
-        return (20, 60)
+    if request.method == "POST":
+        if path in {"/auth/login", "/auth/register", "/api/auth/login", "/api/auth/register"}:
+            return (10, 15 * 60)
+        if path.endswith("/book") and path.startswith("/b/"):
+            return (20, 60)
+        return None
+    # Leituras publicas (paginas/links de agenda): limite generoso por IP para
+    # conter scraping e tentativas de sobrecarga, sem atrapalhar o uso normal.
+    if request.method == "GET" and (path.startswith("/b/") or path.startswith("/share/")):
+        return (200, 60)
     return None
 
 
@@ -59,11 +63,16 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# Em producao, esconde a superficie da API (docs/OpenAPI) de quem sonda o sistema.
+_docs_enabled = APP_ENV != "production"
 app = FastAPI(
     title="AgendaZap",
     description="Agendamento com notificação via WhatsApp",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
 )
 
 if APP_ENV == "production" or ALLOWED_HOSTS != ["agendazapuap.com.br", "www.agendazapuap.com.br", "api.agendazapuap.com.br"]:
@@ -88,6 +97,12 @@ async def security_middleware(request: Request, call_next):
     ):
         secure_url = request.url.replace(scheme="https")
         return RedirectResponse(str(secure_url), status_code=307)
+
+    # Limite de tamanho do corpo (anti-DoS). Webhooks (Stripe) ficam isentos.
+    if request.method in {"POST", "PUT", "PATCH"} and not request.url.path.startswith("/webhooks/"):
+        content_length = request.headers.get("content-length")
+        if content_length and content_length.isdigit() and int(content_length) > 200_000:
+            return JSONResponse({"detail": "Requisicao muito grande."}, status_code=413)
 
     limit = _rate_limit(request)
     if limit:
@@ -138,6 +153,7 @@ app.include_router(booking.router, prefix="/b", tags=["booking"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 app.include_router(plans.router, prefix="/plans", tags=["plans"])
 app.include_router(api.router, tags=["api"])
+app.include_router(share.router, prefix="/share", tags=["share"])
 
 
 @app.exception_handler(HTTPException)

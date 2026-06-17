@@ -54,3 +54,6 @@ async def create_tables():
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
                 "email_notifications boolean NOT NULL DEFAULT true"
             ))
+            await conn.execute(text(
+                "ALTER TABLE schedules ADD COLUMN IF NOT EXISTS share_token varchar(64)"
+            ))

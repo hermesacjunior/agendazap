@@ -6,6 +6,7 @@ from sqlalchemy import select, func, and_
 from datetime import datetime, timedelta, timezone
 import json
 import re
+import secrets
 import uuid
 import logging
 import os
@@ -259,6 +260,46 @@ async def delete_schedule(
     await db.delete(target)  # cascade remove os agendamentos dessa agenda
     await db.commit()
     return RedirectResponse(url="/admin/schedule?deleted=1", status_code=302)
+
+
+async def _own_schedule_or_404(db: AsyncSession, user: User, schedule_id: str) -> Schedule:
+    result = await db.execute(
+        select(Schedule).where(and_(Schedule.id == schedule_id, Schedule.user_id == user.id))
+    )
+    schedule = result.scalar_one_or_none()
+    if not schedule:
+        raise HTTPException(status_code=404)
+    return schedule
+
+
+@router.post("/schedule/{schedule_id}/share")
+async def share_schedule(
+    schedule_id: str,
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    form = await request.form()
+    require_csrf_token(request, str(form.get("csrf_token") or ""))
+    schedule = await _own_schedule_or_404(db, current_user, schedule_id)
+    schedule.share_token = secrets.token_urlsafe(24)
+    await db.commit()
+    return RedirectResponse(url=f"/admin/schedule?sid={schedule.id}&shared=1", status_code=302)
+
+
+@router.post("/schedule/{schedule_id}/unshare")
+async def unshare_schedule(
+    schedule_id: str,
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    form = await request.form()
+    require_csrf_token(request, str(form.get("csrf_token") or ""))
+    schedule = await _own_schedule_or_404(db, current_user, schedule_id)
+    schedule.share_token = None
+    await db.commit()
+    return RedirectResponse(url=f"/admin/schedule?sid={schedule.id}", status_code=302)
 
 
 @router.get("/bookings", response_class=HTMLResponse)

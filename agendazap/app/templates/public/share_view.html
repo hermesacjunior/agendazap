@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Disponibilidade — AgendaZap</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div class="booking-page">
+  <div class="booking-header">
+    <h1 class="booking-name">{{ owner_name }}</h1>
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px">
+      📋 {{ schedule.name }} · disponibilidade (somente leitura)
+    </p>
+  </div>
+
+  <div class="booking-container">
+    <div class="card">
+      <div class="calendar-header">
+        <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">←</button>
+        <span class="calendar-title" id="calendarTitle"></span>
+        <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">→</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="calendar-day-header">Seg</div>
+        <div class="calendar-day-header">Ter</div>
+        <div class="calendar-day-header">Qua</div>
+        <div class="calendar-day-header">Qui</div>
+        <div class="calendar-day-header">Sex</div>
+        <div class="calendar-day-header">Sáb</div>
+        <div class="calendar-day-header">Dom</div>
+      </div>
+      <div class="calendar-grid" id="calendarDays"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Horários livres</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px" id="selectedDateLabel">
+        Selecione uma data no calendário
+      </p>
+      <div id="slotsContainer">
+        <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px">
+          ← Selecione uma data
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size: 12px; color: var(--text-dim); margin-top: 32px">
+    Powered by <strong>AgendaZap</strong>
+  </p>
+</div>
+
+<script>
+const token = "{{ token }}";
+let currentYear, currentMonth, selectedDate;
+let availability = {};
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const today = new Date();
+
+function init() {
+  currentYear = today.getFullYear();
+  currentMonth = today.getMonth() + 1;
+  loadMonth(currentYear, currentMonth);
+}
+
+async function loadMonth(year, month) {
+  document.getElementById('calendarTitle').textContent = `${MONTHS[month-1]} ${year}`;
+  availability = {};
+  try {
+    const res = await fetch(`/share/${token}/availability?year=${year}&month=${month}`);
+    availability = (await res.json()).availability || {};
+  } catch (e) {}
+  renderCalendar(year, month);
+}
+
+function renderCalendar(year, month) {
+  const grid = document.getElementById('calendarDays');
+  grid.innerHTML = '';
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  for (let i = 0; i < startOffset; i++) {
+    const e = document.createElement('div'); e.className = 'calendar-day empty'; grid.appendChild(e);
+  }
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cell = document.createElement('div');
+    cell.textContent = d;
+    const isPast = dateStr < todayStr;
+    const hasSlots = availability[d] === true;
+    if (dateStr === todayStr) cell.classList.add('today');
+    if (isPast) {
+      cell.className = 'calendar-day past';
+    } else if (hasSlots) {
+      cell.className = 'calendar-day available';
+      if (dateStr === selectedDate) cell.classList.add('selected');
+      cell.onclick = () => selectDate(dateStr, d, month);
+    } else {
+      cell.className = 'calendar-day unavailable';
+    }
+    grid.appendChild(cell);
+  }
+}
+
+async function selectDate(dateStr, d, month) {
+  selectedDate = dateStr;
+  renderCalendar(currentYear, currentMonth);
+  document.getElementById('selectedDateLabel').textContent = `${d} de ${MONTHS[month-1]}`;
+  const container = document.getElementById('slotsContainer');
+  container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted)">Carregando...</div>';
+  try {
+    const res = await fetch(`/share/${token}/slots?date_str=${dateStr}`);
+    const data = await res.json();
+    if (!data.slots || data.slots.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:14px">Sem horários livres neste dia</div>';
+      return;
+    }
+    container.innerHTML = '<div class="slots-grid"></div>';
+    const grid = container.querySelector('.slots-grid');
+    data.slots.forEach(slot => {
+      const el = document.createElement('div');
+      el.className = 'slot-btn';
+      el.style.cursor = 'default';
+      el.textContent = slot;
+      grid.appendChild(el);
+    });
+  } catch (e) {
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--red)">Erro ao carregar</div>';
+  }
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  loadMonth(currentYear, currentMonth);
+}
+
+init();
+</script>
+</body>
+</html>
