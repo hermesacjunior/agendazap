@@ -65,6 +65,7 @@
         <tr>
           <th>Cliente</th>
           <th>Contato</th>
+          {% if schedules and schedules|length > 1 %}<th>Agenda</th>{% endif %}
           <th>Data & Hora</th>
           <th>Status</th>
           <th>Notificações</th>
@@ -75,7 +76,10 @@
         {% for booking in bookings %}
         <tr>
           <td>
-            <div style="font-weight: 500">{{ booking.client_name }}</div>
+            <div style="font-weight: 500">
+              {{ booking.client_name }}
+              {% if booking.client_email == user.email %}<span class="badge badge-accent" style="margin-left: 6px">Você</span>{% endif %}
+            </div>
             <div style="font-size: 12px; color: var(--text-muted)">{{ booking.client_email }}</div>
           </td>
           <td>
@@ -85,6 +89,9 @@
             <span style="color: var(--text-dim); font-size: 13px">—</span>
             {% endif %}
           </td>
+          {% if schedules and schedules|length > 1 %}
+          <td><span style="font-size: 13px">{{ schedule_names.get(booking.schedule_id, '—') }}</span></td>
+          {% endif %}
           <td>
             <div style="font-size: 14px">{{ booking.start_datetime | brazil('%d/%m/%Y') }}</div>
             <div style="font-size: 12px; color: var(--text-muted)">{{ booking.start_datetime | brazil('%H:%M') }}</div>

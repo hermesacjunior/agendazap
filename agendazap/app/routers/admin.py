@@ -279,6 +279,7 @@ async def bookings_list(
         "user": current_user,
         "bookings": bookings,
         "schedules": schedules,
+        "schedule_names": {s.id: s.name for s in schedules},
         "app_url": APP_URL,
     })
 
