@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from datetime import datetime, date
 import logging
+import os
 import pytz
 
 from app.database import get_db
@@ -14,13 +15,20 @@ from app.models.booking import Booking, BookingStatus
 from app.services.schedule_service import get_available_slots, get_month_availability
 from app.services.schedule_service import utc_to_brazil
 from app.services.whatsapp_service import notify_admin_new_booking
-from app.services.email_service import notify_admin_email, notify_client_email
+from app.services.email_service import (
+    notify_admin_email,
+    notify_client_email,
+    notify_admin_cancellation_email,
+    notify_client_cancellation_email,
+)
+from app.services.auth_service import create_booking_cancel_token, decode_booking_cancel_token
 from app.security import clean_multiline, clean_phone, clean_text, install_template_security, require_csrf_token
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 install_template_security(templates)
 BRAZIL_TZ = pytz.timezone("America/Sao_Paulo")
+APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 logger = logging.getLogger(__name__)
 
 
@@ -82,6 +90,73 @@ async def _pick_schedule(db: AsyncSession, user_id: str, schedule_id: str = "") 
     if schedule_id:
         return next((s for s in schedules if s.id == schedule_id), None)
     return schedules[0] if len(schedules) == 1 else None
+
+
+async def _booking_from_cancel_token(db: AsyncSession, token: str) -> Booking | None:
+    booking_id = decode_booking_cancel_token(token)
+    if not booking_id:
+        return None
+    result = await db.execute(select(Booking).where(Booking.id == booking_id))
+    return result.scalar_one_or_none()
+
+
+@router.get("/cancelar/{token}", response_class=HTMLResponse)
+async def cancel_booking_page(token: str, request: Request, db: AsyncSession = Depends(get_db)):
+    booking = await _booking_from_cancel_token(db, token)
+    if not booking:
+        return templates.TemplateResponse("public/cancel.html", {
+            "request": request, "error": "Link de cancelamento inválido ou expirado.",
+        })
+    if booking.status == BookingStatus.cancelled:
+        return templates.TemplateResponse("public/cancel.html", {"request": request, "done": True})
+    local = utc_to_brazil(booking.start_datetime)
+    return templates.TemplateResponse("public/cancel.html", {
+        "request": request,
+        "token": token,
+        "client_name": booking.client_name,
+        "date": local.strftime("%d/%m/%Y"),
+        "time": local.strftime("%H:%M"),
+    })
+
+
+@router.post("/cancelar/{token}", response_class=HTMLResponse)
+async def cancel_booking_action(
+    token: str,
+    request: Request,
+    csrf_token: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+):
+    require_csrf_token(request, csrf_token)
+    booking = await _booking_from_cancel_token(db, token)
+    if not booking:
+        return templates.TemplateResponse("public/cancel.html", {
+            "request": request, "error": "Link de cancelamento inválido ou expirado.",
+        })
+
+    if booking.status != BookingStatus.cancelled:
+        booking.status = BookingStatus.cancelled
+        owner = (
+            await db.execute(select(User).where(User.id == booking.user_id))
+        ).scalar_one_or_none()
+        local = utc_to_brazil(booking.start_datetime)
+        data = {
+            "client_name": booking.client_name,
+            "client_email": booking.client_email,
+            "client_whatsapp": booking.client_whatsapp,
+            "admin_name": owner.name if owner else "",
+            "date": local.strftime("%d/%m/%Y"),
+            "time": local.strftime("%H:%M"),
+        }
+        await db.commit()
+        try:
+            if owner and owner.email_notifications:
+                await notify_admin_cancellation_email(owner.email, data)
+            if booking.client_email:
+                await notify_client_cancellation_email(booking.client_email, data)
+        except Exception:
+            pass
+
+    return templates.TemplateResponse("public/cancel.html", {"request": request, "done": True})
 
 
 @router.get("/{slug}", response_class=HTMLResponse)
@@ -198,10 +273,15 @@ async def create_booking(
     time_str: str = Form(...),
     notes: str = Form(""),
     schedule_id: str = Form(""),
+    website: str = Form(""),
     csrf_token: str = Form(""),
     db: AsyncSession = Depends(get_db)
 ):
     require_csrf_token(request, csrf_token)
+    # Honeypot: campo escondido que humanos nunca preenchem; se vier preenchido,
+    # e um bot — descarta silenciosamente sem criar agendamento.
+    if website.strip():
+        return RedirectResponse(url=f"/b/{slug}", status_code=302)
     client_name = clean_text(client_name, max_length=100)
     client_email = client_email.strip().lower()
     client_whatsapp = clean_phone(client_whatsapp)
@@ -305,6 +385,8 @@ async def create_booking(
         "date": local_start.strftime("%d/%m/%Y"),
         "time": local_start.strftime("%H:%M"),
         "notes": notes,
+        # Link para o cliente cancelar sozinho (vai no e-mail de confirmacao).
+        "cancel_url": f"{APP_URL}/b/cancelar/{create_booking_cancel_token(booking.id)}",
     }
 
     # Enviar notificações (não bloqueia se falhar)
@@ -347,6 +429,7 @@ async def booking_success(
     booking = None
     booking_date = "-"
     booking_time = "-"
+    cancel_token = ""
     if user and booking_id:
         result = await db.execute(
             select(Booking).where(and_(Booking.id == booking_id, Booking.user_id == user.id))
@@ -356,6 +439,7 @@ async def booking_success(
             local_start = utc_to_brazil(booking.start_datetime)
             booking_date = local_start.strftime("%d/%m/%Y")
             booking_time = local_start.strftime("%H:%M")
+            cancel_token = create_booking_cancel_token(booking.id)
 
     return templates.TemplateResponse("public/success.html", {
         "request": request,
@@ -363,4 +447,5 @@ async def booking_success(
         "booking": booking,
         "booking_date": booking_date,
         "booking_time": booking_time,
+        "cancel_token": cancel_token,
     })

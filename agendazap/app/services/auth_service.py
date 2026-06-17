@@ -91,6 +91,22 @@ def decode_password_reset_token(token: str) -> Optional[dict]:
     return payload
 
 
+def create_booking_cancel_token(booking_id: str) -> str:
+    """Token assinado para o cliente cancelar o proprio agendamento via link."""
+    return jwt.encode(
+        {"sub": booking_id, "purpose": "booking_cancel"},
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+
+
+def decode_booking_cancel_token(token: str) -> Optional[str]:
+    payload = decode_token(token)
+    if not payload or payload.get("purpose") != "booking_cancel":
+        return None
+    return payload.get("sub")
+
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db)

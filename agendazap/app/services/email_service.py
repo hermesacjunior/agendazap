@@ -59,6 +59,7 @@ def booking_confirmation_html(booking_data: dict, is_admin: bool = False) -> str
     date = _field(booking_data, "date")
     time = _field(booking_data, "time")
     notes = _field(booking_data, "notes", "Nenhuma")
+    cancel_url = escape(str(booking_data.get("cancel_url") or ""))
 
     if is_admin:
         return f"""
@@ -85,7 +86,7 @@ def booking_confirmation_html(booking_data: dict, is_admin: bool = False) -> str
             <p><strong>Horario:</strong> {time}</p>
             <p><strong>Com:</strong> {admin_name}</p>
         </div>
-        <p>Para cancelar ou remarcar, entre em contato diretamente.</p>
+        {f'<p style="text-align:center;margin:24px 0"><a href="{cancel_url}" style="color:#e53e3e;font-size:14px">Precisa cancelar? Clique aqui</a></p>' if cancel_url else '<p>Para cancelar ou remarcar, entre em contato diretamente.</p>'}
         <p style="color: #666; font-size: 12px;">AgendaZap - Sistema de Agendamentos</p>
     </div>
     """
