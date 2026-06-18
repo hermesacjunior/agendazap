@@ -8,12 +8,10 @@
     <p class="page-subtitle">Aqui está o resumo da sua agenda</p>
   </div>
   {% if schedules %}
-  <div class="flex gap-2">
-    <div class="link-box" style="max-width: 340px">
-      <span style="font-size:14px; color: var(--text-muted)">🔗</span>
-      <input type="text" id="linkInput" value="{{ app_url }}/b/{{ user.slug }}" readonly>
-      <button class="btn btn-sm btn-secondary" onclick="copyLink()">Copiar</button>
-    </div>
+  <div class="link-box" style="min-width: 280px; flex: 1; max-width: 360px">
+    <span style="font-size: var(--text-base); color: var(--text-muted)">🔗</span>
+    <input type="text" id="linkInput" value="{{ app_url }}/b/{{ user.slug }}" readonly>
+    <button class="btn btn-sm btn-secondary" onclick="copyLink()">Copiar</button>
   </div>
   {% endif %}
 </div>
@@ -36,8 +34,9 @@
   <div class="stat-card">
     <span class="stat-icon">💬</span>
     <span class="stat-label">WhatsApp</span>
-    <span class="stat-value" style="font-size:18px; color: {{ 'var(--green)' if user.whatsapp_connected else 'var(--red)' }}">
-      {{ '● Conectado' if user.whatsapp_connected else '● Desconectado' }}
+    <span class="stat-value flex items-center gap-2" style="font-size: var(--text-lg)">
+      <span class="status-dot {{ 'green' if user.whatsapp_connected else 'red' }}"></span>
+      {{ 'Conectado' if user.whatsapp_connected else 'Desconectado' }}
     </span>
   </div>
   <div class="stat-card">
@@ -49,19 +48,15 @@
 
 <div class="grid-2">
   <div class="card">
-    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Próximos Agendamentos</h3>
+    <h3 class="card-title">Próximos Agendamentos</h3>
     {% if next_bookings %}
-    <div style="display: flex; flex-direction: column; gap: 12px">
+    <div class="list">
       {% for booking in next_bookings %}
-      <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-input); border-radius: 8px;">
-        <div style="width: 40px; height: 40px; background: var(--accent-glow); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent);">
-          {{ booking.client_name[0].upper() }}
-        </div>
-        <div style="flex: 1">
-          <div style="font-size: 14px; font-weight: 500">{{ booking.client_name }}</div>
-          <div style="font-size: 12px; color: var(--text-muted)">
-            {{ booking.start_datetime | brazil('%d/%m/%Y às %H:%M') }}
-          </div>
+      <div class="list-row">
+        <div class="row-avatar">{{ booking.client_name[0].upper() }}</div>
+        <div class="row-main">
+          <div class="row-title">{{ booking.client_name }}</div>
+          <div class="row-sub">{{ booking.start_datetime | brazil('%d/%m/%Y às %H:%M') }}</div>
         </div>
         <span class="badge badge-green">Confirmado</span>
       </div>
@@ -69,17 +64,17 @@
     </div>
     <a href="/admin/bookings" class="btn btn-secondary btn-full mt-4">Ver todos</a>
     {% else %}
-    <div style="text-align: center; padding: 32px; color: var(--text-muted)">
-      <div style="font-size: 32px; margin-bottom: 8px">📭</div>
-      <p>Nenhum agendamento próximo</p>
-      <p class="text-sm mt-4">Compartilhe seu link para receber agendamentos</p>
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">Nenhum agendamento próximo</div>
+      <div class="empty-desc">Compartilhe seu link para começar a receber agendamentos.</div>
     </div>
     {% endif %}
   </div>
 
   <div class="card">
-    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Ações Rápidas</h3>
-    <div style="display: flex; flex-direction: column; gap: 10px">
+    <h3 class="card-title">Ações Rápidas</h3>
+    <div class="flex flex-col gap-2">
       <a href="/admin/schedule" class="btn btn-secondary btn-full">📅 Configurar Disponibilidade</a>
       <a href="/admin/whatsapp" class="btn btn-secondary btn-full">💬 Conectar WhatsApp</a>
       <a href="/b/{{ user.slug }}" target="_blank" class="btn btn-secondary btn-full">🔗 Ver Minha Agenda Pública</a>

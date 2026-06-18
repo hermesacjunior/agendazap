@@ -9,7 +9,15 @@
 </head>
 <body>
   <div class="app-layout">
-    <aside class="sidebar">
+    <header class="admin-topbar">
+      <button class="topbar-toggle" id="sidebarToggle" aria-label="Abrir menu" aria-controls="appSidebar" aria-expanded="false">☰</button>
+      <div class="topbar-logo">
+        <span class="logo-icon">📅</span>
+        <span>AgendaZap</span>
+      </div>
+    </header>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="appSidebar">
       <div class="sidebar-logo">
         <div class="logo-icon">📅</div>
         <span>AgendaZap</span>
@@ -65,5 +73,25 @@
     </main>
   </div>
   {% block scripts %}{% endblock %}
+  <script>
+    (function () {
+      var toggle = document.getElementById('sidebarToggle');
+      var sidebar = document.getElementById('appSidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      if (!toggle || !sidebar || !overlay) return;
+      function setOpen(open) {
+        sidebar.classList.toggle('open', open);
+        overlay.classList.toggle('open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      toggle.addEventListener('click', function () { setOpen(!sidebar.classList.contains('open')); });
+      overlay.addEventListener('click', function () { setOpen(false); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+      // Fecha o drawer ao navegar por um link da nav
+      sidebar.querySelectorAll('.nav-item').forEach(function (a) {
+        a.addEventListener('click', function () { setOpen(false); });
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -257,6 +257,40 @@ a:hover { color: var(--accent-soft); }
 .card-hover { transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
 .card-hover:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow); }
 
+.card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-4);
+}
+
+/* Linha de lista (ex.: agendamento com avatar) — reutilizável */
+.list { display: flex; flex-direction: column; gap: var(--space-3); }
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.list-row:hover { background: var(--bg-elevated); border-color: var(--border-light); }
+.list-row .row-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+}
+.list-row .row-main { flex: 1; min-width: 0; }
+.list-row .row-title { font-size: var(--text-base); font-weight: var(--weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row .row-sub { font-size: var(--text-xs); color: var(--text-muted); }
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -790,13 +824,70 @@ tr:hover td { background: var(--bg-hover); }
 @keyframes modal-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 /* ============================================================================
-   Responsivo
+   Shell mobile: topbar + drawer
    ========================================================================== */
+/* Topbar só aparece no mobile (escondida no desktop) */
+.admin-topbar { display: none; }
+.sidebar-overlay { display: none; }
+
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
+  .admin-topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sidebar);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-3) var(--space-4);
+  }
+  .topbar-toggle {
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .topbar-toggle:active { transform: scale(0.96); }
+  .topbar-logo { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-display); font-weight: var(--weight-bold); font-size: var(--text-md); }
+  .topbar-logo .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+
+  /* Sidebar vira drawer off-canvas */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform var(--dur-slow) var(--ease-out);
+    width: 280px;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 5, 10, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: var(--z-overlay);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  }
+  .sidebar-overlay.open { opacity: 1; visibility: visible; }
+  .sidebar { z-index: var(--z-modal); }
+
   .main-content { margin-left: 0; padding: var(--space-4); max-width: 100%; }
   .booking-container { grid-template-columns: 1fr; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
+
+  /* Conforto de toque no mobile (alvos >= 44px) */
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 38px; }
+  .nav-item { padding: 12px; }
+  .page-header { gap: var(--space-3); }
 }
 
 /* ============================================================================
