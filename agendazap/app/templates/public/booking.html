@@ -9,7 +9,7 @@
 <body>
 <div class="booking-page">
   <div class="booking-header">
-    <div class="booking-avatar">{{ profile.name[0].upper() }}</div>
+    <div class="booking-avatar">{% if profile.avatar %}<img src="{{ profile.avatar }}" alt="{{ profile.name }}">{% else %}{{ profile.name[0].upper() }}{% endif %}</div>
     <h1 class="booking-name">{{ profile.name }}</h1>
     {% if profile.bio %}
     <p class="booking-bio">{{ profile.bio }}</p>

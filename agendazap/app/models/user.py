@@ -23,6 +23,10 @@ class User(Base):
     whatsapp = Column(String(20), nullable=True)
     slug = Column(String(50), unique=True, nullable=False, index=True)
     bio = Column(Text, nullable=True)
+    # Foto de perfil como data URL (data:image/...;base64,...). Redimensionada
+    # no cliente (<=256px) antes do upload, entao cabe no limite de corpo e
+    # respeita a CSP (img-src 'self' data:). Aparece na agenda publica.
+    avatar = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superadmin = Column(Boolean, default=False, nullable=False)
     # Incrementado ao trocar a senha: invalida todos os JWTs antigos (logout

@@ -64,7 +64,7 @@
       <div class="sidebar-bottom">
         <button id="installBtn" class="btn btn-secondary btn-full" style="display:none; margin-bottom: var(--space-3)">⬇️ Instalar app</button>
         <div class="user-pill">
-          <div class="user-avatar">{{ user.name[0].upper() }}</div>
+          <div class="user-avatar">{% if user.avatar %}<img src="{{ user.avatar }}" alt="">{% else %}{{ user.name[0].upper() }}{% endif %}</div>
           <div class="user-info">
             <div class="user-name">{{ user.name }}</div>
             <div class="user-plan">Plano {{ user.plan.value.capitalize() }}</div>

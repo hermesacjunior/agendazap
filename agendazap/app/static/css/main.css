@@ -383,7 +383,9 @@ a:hover { color: var(--accent-soft); }
 
 label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-muted); }
 
-input, select, textarea {
+/* Campos de texto/select/textarea — exclui checkbox e radio (que devem
+   manter o tamanho/alinhamento nativos). */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -398,7 +400,17 @@ input, select, textarea {
 
 input::placeholder, textarea::placeholder { color: var(--text-dim); }
 
-input:focus, select:focus, textarea:focus {
+/* Checkbox/radio: alinhamento e cor de marca consistentes */
+input[type="checkbox"], input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
@@ -720,6 +732,27 @@ tr:hover td { background: var(--bg-hover); }
   font-weight: var(--weight-bold);
   color: white;
   margin: 0 auto var(--space-4);
+}
+
+/* Avatares com foto: a imagem preenche o circulo */
+.booking-avatar, .user-avatar { overflow: hidden; }
+.booking-avatar img, .user-avatar img, .avatar-preview img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+.avatar-preview {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .booking-name { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-tight); }

@@ -18,6 +18,23 @@
     <form method="POST" action="/admin/profile">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <div class="form-group">
+        <label>Foto de perfil</label>
+        <div class="flex items-center gap-4">
+          <div class="avatar-preview" id="avatarPreview" data-initial="{{ user.name[0].upper() }}">
+            {% if user.avatar %}<img src="{{ user.avatar }}" alt="">{% else %}{{ user.name[0].upper() }}{% endif %}
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="btn btn-secondary btn-sm" style="margin:0">
+              Escolher foto
+              <input type="file" id="avatarFile" accept="image/*" style="display:none">
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm" id="avatarRemove" {% if not user.avatar %}style="display:none"{% endif %}>Remover</button>
+          </div>
+        </div>
+        <span class="field-hint">Aparece na sua agenda pública. Ideal: imagem quadrada.</span>
+        <input type="hidden" name="avatar" id="avatarInput" value="{{ user.avatar or '' }}">
+      </div>
+      <div class="form-group">
         <label>Nome</label>
         <input type="text" name="name" value="{{ user.name }}" required>
       </div>
@@ -174,6 +191,52 @@
 {% block scripts %}
 <script>
 const csrfToken = "{{ csrf_token(request) }}";
+
+// Foto de perfil: redimensiona no cliente (<=256px) antes de enviar como data URL.
+(function () {
+  var fileInput = document.getElementById('avatarFile');
+  var hidden = document.getElementById('avatarInput');
+  var preview = document.getElementById('avatarPreview');
+  var removeBtn = document.getElementById('avatarRemove');
+  if (!fileInput) return;
+  var initial = preview.getAttribute('data-initial') || '';
+  function setPreview(dataUrl) {
+    if (dataUrl) {
+      preview.innerHTML = '<img alt="">';
+      preview.querySelector('img').src = dataUrl;
+      removeBtn.style.display = '';
+    } else {
+      preview.textContent = initial;
+      removeBtn.style.display = 'none';
+    }
+  }
+  fileInput.addEventListener('change', function () {
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var max = 256;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var cw = Math.round(img.width * scale), ch = Math.round(img.height * scale);
+        var canvas = document.createElement('canvas');
+        canvas.width = cw; canvas.height = ch;
+        canvas.getContext('2d').drawImage(img, 0, 0, cw, ch);
+        var out = canvas.toDataURL('image/jpeg', 0.82);
+        hidden.value = out;
+        setPreview(out);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  removeBtn.addEventListener('click', function () {
+    hidden.value = '';
+    fileInput.value = '';
+    setPreview('');
+  });
+})();
 
 function copyLink() {
   const input = document.getElementById('linkInput');

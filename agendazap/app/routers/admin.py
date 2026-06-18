@@ -671,6 +671,14 @@ async def save_profile(
     current_user.name = clean_text(data.get("name"), max_length=100, default=current_user.name)
     current_user.whatsapp = clean_phone(data.get("whatsapp") or current_user.whatsapp)
     current_user.bio = clean_multiline(data.get("bio"), max_length=1000)
+    # Foto de perfil (data URL redimensionada no cliente). Campo vazio => remove;
+    # so aceita data:image/ dentro de um limite de tamanho (defesa extra alem do
+    # limite de corpo do middleware). Qualquer outra coisa preserva o atual.
+    avatar_raw = (data.get("avatar") or "").strip()
+    if avatar_raw == "":
+        current_user.avatar = None
+    elif avatar_raw.startswith("data:image/") and len(avatar_raw) <= 300_000:
+        current_user.avatar = avatar_raw
     current_user.email_notifications = bool(data.get("email_notifications"))
     # Resumo diario e lembretes sao recursos Pro: nao-Pro nunca fica ativo.
     pro = _is_pro(current_user)
