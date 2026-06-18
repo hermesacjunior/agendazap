@@ -17,9 +17,9 @@
 {% if request.query_params.get('shared') %}<div class="alert alert-success">🔗 Link de visualização gerado.</div>{% endif %}
 
 {% if max_schedules > 1 or (schedules and schedules|length > 1) %}
-<div class="card" style="margin-bottom: 16px">
-  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
-    <span style="font-size: 13px; color: var(--text-muted); margin-right: 4px">Suas agendas:</span>
+<div class="card mb-4">
+  <div class="flex items-center flex-wrap gap-2">
+    <span class="text-sm text-muted" style="margin-right: var(--space-1)">Suas agendas:</span>
     {% for s in schedules %}
     <a href="/admin/schedule?sid={{ s.id }}"
        class="btn btn-sm {% if schedule and s.id == schedule.id %}btn-primary{% else %}btn-secondary{% endif %}">
@@ -27,15 +27,15 @@
     </a>
     {% endfor %}
     {% if can_add %}
-    <form method="POST" action="/admin/schedule/new" style="display: inline; margin: 0">
+    <form method="POST" action="/admin/schedule/new" style="margin: 0">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-sm btn-secondary">+ Nova agenda</button>
     </form>
     {% else %}
-    <span style="font-size: 12px; color: var(--text-muted)">Limite de {{ max_schedules }} agenda(s) atingido</span>
+    <span class="text-sm text-muted">Limite de {{ max_schedules }} agenda(s) atingido</span>
     {% endif %}
     {% if schedules and schedules|length > 1 and schedule %}
-    <form method="POST" action="/admin/schedule/{{ schedule.id }}/delete" style="display: inline; margin: 0 0 0 auto"
+    <form method="POST" action="/admin/schedule/{{ schedule.id }}/delete" style="margin: 0 0 0 auto"
           onsubmit="return confirm('Excluir a agenda &quot;{{ schedule.name }}&quot; e todos os agendamentos dela?')">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-sm btn-danger">Excluir esta agenda</button>
@@ -49,10 +49,10 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
   <input type="hidden" name="schedule_id" value="{{ schedule.id if schedule else '' }}">
   <div class="grid-2" style="align-items: start">
-    <div style="display: flex; flex-direction: column; gap: 16px">
+    <div class="flex flex-col gap-4">
 
       <div class="card">
-        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Configurações Gerais</h3>
+        <h3 class="card-title">Configurações Gerais</h3>
 
         <div class="form-group">
           <label>Nome da Agenda</label>
@@ -95,7 +95,7 @@
       </div>
 
       <div class="card">
-        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Disponibilidade Semanal</h3>
+        <h3 class="card-title">Disponibilidade Semanal</h3>
 
         {% set days = [('0', 'Segunda'), ('1', 'Terça'), ('2', 'Quarta'), ('3', 'Quinta'), ('4', 'Sexta'), ('5', 'Sábado'), ('6', 'Domingo')] %}
         {% for day_num, day_name in days %}
@@ -115,44 +115,44 @@
               <label for="day{{ day_num }}" style="font-size: 14px; cursor: pointer">{{ day_name }}</label>
             </div>
             <div class="day-times" id="times{{ day_num }}" style="{{ 'opacity:0.3; pointer-events:none' if not is_active }}">
-              <input type="time" name="start_{{ day_num }}" value="{{ start }}" style="width: 120px">
-              <span style="color: var(--text-muted)">até</span>
-              <input type="time" name="end_{{ day_num }}" value="{{ end }}" style="width: 120px">
+              <input type="time" name="start_{{ day_num }}" value="{{ start }}">
+              <span class="text-muted text-sm">até</span>
+              <input type="time" name="end_{{ day_num }}" value="{{ end }}">
             </div>
           </div>
         {% endfor %}
       </div>
     </div>
 
-    <div style="position: sticky; top: 24px">
+    <div style="position: sticky; top: var(--space-6)">
       <div class="card">
-        <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 8px">💡 Dicas</h3>
-        <ul style="font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px; padding-left: 16px">
+        <h3 class="card-title" style="margin-bottom: var(--space-2)">💡 Dicas</h3>
+        <ul class="text-sm text-muted" style="display: flex; flex-direction: column; gap: var(--space-2); padding-left: var(--space-4)">
           <li>Slots são os intervalos disponíveis para agendamento</li>
           <li>O intervalo é um tempo de folga entre cada atendimento</li>
           <li>Clientes podem agendar até o limite de dias configurado</li>
         </ul>
 
-        <div style="margin-top: 20px; padding: 16px; background: var(--bg-input); border-radius: 8px">
-          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px">
+        <div style="margin-top: var(--space-5); padding: var(--space-4); background: var(--bg-input); border-radius: var(--radius-sm)">
+          <p class="text-sm text-muted" style="margin-bottom: var(--space-2)">
             {% if schedules and schedules|length > 1 %}Link desta agenda:{% else %}Seu link público:{% endif %}
           </p>
-          <code style="font-size: 12px; color: var(--accent); word-break: break-all">
+          <code style="font-size: var(--text-xs); color: var(--accent); word-break: break-all">
             {{ app_url }}/b/{{ user.slug }}{% if schedules and schedules|length > 1 and schedule %}?agenda={{ schedule.id }}{% endif %}
           </code>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-full mt-4" style="margin-top: 16px">
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top: var(--space-4)">
         💾 Salvar Configurações
       </button>
     </div>
   </div>
 
   {% if user.plan.value == 'pro' %}
-  <div class="card" style="margin-top: 16px">
-    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Bloquear datas e horários</h3>
-    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
+  <div class="card" style="margin-top: var(--space-4)">
+    <h3 class="card-title" style="margin-bottom: var(--space-1)">Bloquear datas e horários</h3>
+    <p class="text-sm text-muted" style="margin-bottom: var(--space-4)">
       Clique em um dia para bloquear o dia inteiro ou horários específicos. Os bloqueios não aparecem para os clientes.
       Lembre de clicar em <strong>Salvar Configurações</strong> para aplicar.
     </p>
@@ -193,9 +193,9 @@
 {% endif %}
 
 {% if schedule and user.plan.value == 'pro' %}
-<div class="card" style="margin-top: 16px">
-  <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Compartilhar visualização</h3>
-  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
+<div class="card" style="margin-top: var(--space-4)">
+  <h3 class="card-title" style="margin-bottom: var(--space-1)">Compartilhar visualização</h3>
+  <p class="text-sm text-muted" style="margin-bottom: var(--space-4)">
     Gere um link <strong>somente leitura</strong> para alguém ver a disponibilidade desta agenda
     (<strong>{{ schedule.name }}</strong>). O link não permite agendar e não expõe nenhum dado dos seus clientes.
   </p>
