@@ -16,9 +16,9 @@
 {% if request.query_params.get('err') == 'pro' %}<div class="alert alert-error">💎 Agendar seus próprios compromissos é um recurso do plano <a href="/plans" style="color: var(--accent); font-weight: 600">Pro</a>.</div>{% endif %}
 
 {% if user.plan.value == 'pro' %}
-<div class="card" style="margin-bottom: 16px">
-  <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 4px">Novo agendamento (seu)</h3>
-  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px">
+<div class="card mb-4">
+  <h3 class="card-title" style="margin-bottom: var(--space-1)">Novo agendamento (seu)</h3>
+  <p class="text-sm text-muted" style="margin-bottom: var(--space-4)">
     Reserve um horário para você. Ele ocupa o espaço e <strong>não aparece para os clientes</strong>.
   </p>
   <form method="POST" action="/admin/bookings/new">
@@ -63,7 +63,7 @@
 <div class="card">
   {% if bookings %}
   <div class="table-wrapper">
-    <table>
+    <table class="table-stack">
       <thead>
         <tr>
           <th>Cliente</th>
@@ -78,28 +78,28 @@
       <tbody>
         {% for booking in bookings %}
         <tr>
-          <td>
+          <td data-label="Cliente">
             <div style="font-weight: 500">
               {{ booking.client_name }}
               {% if booking.client_email == user.email %}<span class="badge badge-accent" style="margin-left: 6px">Você</span>{% endif %}
             </div>
-            <div style="font-size: 12px; color: var(--text-muted)">{{ booking.client_email }}</div>
+            <div style="font-size: var(--text-xs); color: var(--text-muted)">{{ booking.client_email }}</div>
           </td>
-          <td>
+          <td data-label="Contato">
             {% if booking.client_whatsapp %}
-            <span style="font-size: 13px">📱 {{ booking.client_whatsapp }}</span>
+            <span class="text-sm">📱 {{ booking.client_whatsapp }}</span>
             {% else %}
-            <span style="color: var(--text-dim); font-size: 13px">—</span>
+            <span class="text-sm" style="color: var(--text-dim)">—</span>
             {% endif %}
           </td>
           {% if schedules and schedules|length > 1 %}
-          <td><span style="font-size: 13px">{{ schedule_names.get(booking.schedule_id, '—') }}</span></td>
+          <td data-label="Agenda"><span class="text-sm">{{ schedule_names.get(booking.schedule_id, '—') }}</span></td>
           {% endif %}
-          <td>
-            <div style="font-size: 14px">{{ booking.start_datetime | brazil('%d/%m/%Y') }}</div>
-            <div style="font-size: 12px; color: var(--text-muted)">{{ booking.start_datetime | brazil('%H:%M') }}</div>
+          <td data-label="Data & Hora">
+            <div style="font-size: var(--text-base)">{{ booking.start_datetime | brazil('%d/%m/%Y') }}</div>
+            <div style="font-size: var(--text-xs); color: var(--text-muted)">{{ booking.start_datetime | brazil('%H:%M') }}</div>
           </td>
-          <td>
+          <td data-label="Status">
             {% if booking.status.value == 'confirmed' %}
             <span class="badge badge-green">✓ Confirmado</span>
             {% elif booking.status.value == 'cancelled' %}
@@ -110,13 +110,13 @@
             <span class="badge badge-yellow">⏳ Pendente</span>
             {% endif %}
           </td>
-          <td>
+          <td data-label="Notificações">
             <div style="display: flex; gap: 4px">
               <span title="WhatsApp Admin" class="badge {% if booking.whatsapp_sent_admin %}badge-green{% else %}badge-red{% endif %}">WA</span>
               <span title="Email Admin" class="badge {% if booking.email_sent_admin %}badge-green{% else %}badge-red{% endif %}">✉</span>
             </div>
           </td>
-          <td>
+          <td data-label="Ações">
             {% if booking.status.value == 'confirmed' %}
             <form method="POST" action="/admin/bookings/{{ booking.id }}/cancel"
               onsubmit="return confirm('Cancelar este agendamento?')">
@@ -130,7 +130,7 @@
               <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
             </form>
             {% else %}
-            <span style="color: var(--text-dim); font-size: 13px">—</span>
+            <span class="text-sm" style="color: var(--text-dim)">—</span>
             {% endif %}
           </td>
         </tr>
@@ -139,13 +139,11 @@
     </table>
   </div>
   {% else %}
-  <div style="text-align: center; padding: 64px; color: var(--text-muted)">
-    <div style="font-size: 48px; margin-bottom: 16px">📭</div>
-    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 8px">Nenhum agendamento ainda</h3>
-    <p style="font-size: 14px">Compartilhe seu link para começar a receber agendamentos</p>
-    <div style="margin-top: 20px; display: flex; justify-content: center">
-      <a href="/admin/dashboard" class="btn btn-primary">← Voltar ao Dashboard</a>
-    </div>
+  <div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <div class="empty-title">Nenhum agendamento ainda</div>
+    <div class="empty-desc">Compartilhe seu link para começar a receber agendamentos.</div>
+    <a href="/admin/dashboard" class="btn btn-primary">← Voltar ao Dashboard</a>
   </div>
   {% endif %}
 </div>
