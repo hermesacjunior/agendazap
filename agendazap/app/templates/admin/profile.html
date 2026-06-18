@@ -155,19 +155,21 @@
     </div>
 
     <div class="card">
-      <h3 class="card-title" style="margin-bottom: var(--space-3)">Notificações por e-mail</h3>
-      <p class="text-sm text-muted" style="margin-bottom: var(--space-3)">
-        Envie um e-mail de teste para <strong>{{ user.email }}</strong> e confirme que está recebendo.
-      </p>
-      <button type="button" class="btn btn-secondary btn-full" id="testEmailBtn" onclick="sendTestEmail()">
-        ✉️ Enviar e-mail de teste
-      </button>
-      <div id="testEmailMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
+      <h3 class="card-title" style="margin-bottom: var(--space-3)">Resumo do dia</h3>
       {% if user.plan.value == 'pro' %}
-      <button type="button" class="btn btn-secondary btn-full" id="testDigestBtn" onclick="sendTestDigest()" style="margin-top: var(--space-2)">
-        📅 Enviar resumo do dia (teste)
+      <p class="text-sm text-muted" style="margin-bottom: var(--space-3)">
+        Envie agora a lista dos compromissos de hoje para você mesmo.
+      </p>
+      <button type="button" class="btn btn-secondary btn-full" id="digestEmailBtn" onclick="sendDigestEmail()">
+        📅 Enviar resumo do dia
       </button>
-      <div id="testDigestMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
+      <div id="digestEmailMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
+      <button type="button" class="btn btn-secondary btn-full" id="digestWhatsappBtn" onclick="sendDigestWhatsapp()" style="margin-top: var(--space-2)">
+        💬 Enviar resumo pelo WhatsApp
+      </button>
+      <div id="digestWhatsappMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
+      {% else %}
+      <p class="text-sm text-muted">Disponível no plano <a href="/plans" style="color: var(--accent); font-weight: 600">Pro</a>.</p>
       {% endif %}
     </div>
 
@@ -247,62 +249,40 @@ function copyLink() {
   });
 }
 
-async function sendTestEmail() {
-  const btn = document.getElementById('testEmailBtn');
-  const msg = document.getElementById('testEmailMsg');
+async function postDigest(url, btnId, msgId, okMsg) {
+  const btn = document.getElementById(btnId);
+  const msg = document.getElementById(msgId);
   btn.disabled = true;
   const original = btn.textContent;
   btn.textContent = 'Enviando...';
   msg.textContent = '';
   try {
-    const res = await fetch('/admin/profile/test-email', {
-      method: 'POST',
-      headers: { 'x-csrf-token': csrfToken }
-    });
+    const res = await fetch(url, { method: 'POST', headers: { 'x-csrf-token': csrfToken } });
     const data = await res.json();
     if (res.ok && data.ok) {
       msg.style.color = 'var(--green, #38a169)';
-      msg.textContent = '✓ E-mail de teste enviado. Verifique sua caixa de entrada (e o spam).';
+      msg.textContent = okMsg;
     } else {
       msg.style.color = 'var(--red, #e53e3e)';
-      msg.textContent = data.error || 'Não foi possível enviar o e-mail de teste.';
+      msg.textContent = data.error || 'Não foi possível enviar.';
     }
   } catch (e) {
     msg.style.color = 'var(--red, #e53e3e)';
-    msg.textContent = 'Erro de rede ao enviar o e-mail de teste.';
+    msg.textContent = 'Erro de rede ao enviar.';
   } finally {
     btn.disabled = false;
     btn.textContent = original;
   }
 }
 
-async function sendTestDigest() {
-  const btn = document.getElementById('testDigestBtn');
-  const msg = document.getElementById('testDigestMsg');
-  btn.disabled = true;
-  const original = btn.textContent;
-  btn.textContent = 'Enviando...';
-  msg.textContent = '';
-  try {
-    const res = await fetch('/admin/profile/test-digest', {
-      method: 'POST',
-      headers: { 'x-csrf-token': csrfToken }
-    });
-    const data = await res.json();
-    if (res.ok && data.ok) {
-      msg.style.color = 'var(--green, #38a169)';
-      msg.textContent = '✓ Resumo de teste enviado para o seu e-mail. Verifique a caixa de entrada.';
-    } else {
-      msg.style.color = 'var(--red, #e53e3e)';
-      msg.textContent = data.error || 'Não foi possível enviar o resumo de teste.';
-    }
-  } catch (e) {
-    msg.style.color = 'var(--red, #e53e3e)';
-    msg.textContent = 'Erro de rede ao enviar o resumo de teste.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
+function sendDigestEmail() {
+  postDigest('/admin/profile/digest/email', 'digestEmailBtn', 'digestEmailMsg',
+    '✓ Resumo enviado para o seu e-mail. Verifique a caixa de entrada (e o spam).');
+}
+
+function sendDigestWhatsapp() {
+  postDigest('/admin/profile/digest/whatsapp', 'digestWhatsappBtn', 'digestWhatsappMsg',
+    '✓ Resumo enviado para o seu WhatsApp.');
 }
 </script>
 {% endblock %}

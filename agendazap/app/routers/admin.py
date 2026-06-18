@@ -19,10 +19,9 @@ from app.services.auth_service import require_user
 from app.services.email_service import (
     notify_admin_cancellation_email,
     notify_client_cancellation_email,
-    send_email,
 )
 from app.services.schedule_service import BRAZIL_TZ, utc_to_brazil
-from app.services.reminder_service import send_user_digest
+from app.services.reminder_service import send_digest_email, send_digest_whatsapp, whatsapp_ready
 from app.services.sms_service import notify_client_cancellation_sms
 from app.services.whatsapp_service import (
     connect_instance,
@@ -694,8 +693,8 @@ async def save_profile(
     return RedirectResponse(url="/admin/profile?saved=1", status_code=302)
 
 
-@router.post("/profile/test-digest")
-async def test_digest(
+@router.post("/profile/digest/email")
+async def send_digest_email_now(
     request: Request,
     current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db)
@@ -704,9 +703,9 @@ async def test_digest(
     if not _is_pro(current_user):
         return JSONResponse({"ok": False, "error": "Recurso disponível no plano Pro."}, status_code=403)
     try:
-        sent = await send_user_digest(db, current_user, force_email=True)
+        sent = await send_digest_email(db, current_user)
     except Exception:
-        logger.exception("Erro ao enviar resumo de teste do usuario %s", current_user.id)
+        logger.exception("Erro ao enviar resumo por e-mail do usuario %s", current_user.id)
         sent = False
     if sent:
         return JSONResponse({"ok": True})
@@ -716,27 +715,28 @@ async def test_digest(
     )
 
 
-@router.post("/profile/test-email")
-async def test_email(
+@router.post("/profile/digest/whatsapp")
+async def send_digest_whatsapp_now(
     request: Request,
     current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
 ):
     require_csrf_token(request, request.headers.get("x-csrf-token"))
-    html = (
-        "<div style=\"font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">"
-        "<h2 style=\"color:#1a1a2e;\">E-mail de teste do AgendaZap</h2>"
-        f"<p>Ola, <strong>{current_user.name}</strong>! Se voce recebeu este e-mail, "
-        "as notificacoes por e-mail estao funcionando.</p>"
-        "<p style=\"color:#666;font-size:12px;\">AgendaZap - Sistema de Agendamentos</p></div>"
-    )
-    sent = await send_email(
-        to=current_user.email,
-        subject="Teste de notificacao - AgendaZap",
-        html=html,
-    )
+    if not _is_pro(current_user):
+        return JSONResponse({"ok": False, "error": "Recurso disponível no plano Pro."}, status_code=403)
+    if not whatsapp_ready(current_user):
+        return JSONResponse(
+            {"ok": False, "error": "Conecte seu WhatsApp e cadastre seu número no perfil antes de enviar."},
+            status_code=400,
+        )
+    try:
+        sent = await send_digest_whatsapp(db, current_user)
+    except Exception:
+        logger.exception("Erro ao enviar resumo por WhatsApp do usuario %s", current_user.id)
+        sent = False
     if sent:
         return JSONResponse({"ok": True})
     return JSONResponse(
-        {"ok": False, "error": "Falha ao enviar. Verifique a configuracao de e-mail (Resend) no servidor."},
+        {"ok": False, "error": "Falha ao enviar pelo WhatsApp. Verifique a conexão e tente novamente."},
         status_code=502,
     )

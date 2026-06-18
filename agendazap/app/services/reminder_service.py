@@ -80,29 +80,49 @@ def _digest_html(name: str, date_str: str, items: list[dict]) -> str:
     )
 
 
-async def send_user_digest(db, user: User, force_email: bool = False) -> bool:
-    """Envia o resumo do dia pelos canais habilitados. Retorna True se enviou.
-
-    force_email envia o e-mail mesmo com o canal desligado (usado no teste manual).
-    """
-    items, now_local = await _today_items(db, user)
-    date_str = now_local.strftime("%d/%m/%Y")
-    sent_any = False
-
-    if user.daily_digest_email or force_email:
-        if await send_email(user.email, f"Seus compromissos de hoje ({date_str})", _digest_html(user.name, date_str, items)):
-            sent_any = True
-
-    if (
-        user.daily_digest_whatsapp
-        and user.plan.value == "pro"
+def whatsapp_ready(user: User) -> bool:
+    """True se o usuario pode receber o resumo pelo WhatsApp (pre-requisitos tecnicos)."""
+    return bool(
+        user.plan.value == "pro"
         and user.whatsapp
         and user.evolution_instance
         and user.whatsapp_connected
-    ):
-        if await send_message(user.evolution_instance, user.whatsapp, _digest_text(date_str, items)):
-            sent_any = True
+    )
 
+
+async def send_digest_email(db, user: User) -> bool:
+    """Envia o resumo do dia por e-mail (sem checar o toggle). Retorna True se enviou."""
+    items, now_local = await _today_items(db, user)
+    date_str = now_local.strftime("%d/%m/%Y")
+    return await send_email(
+        user.email,
+        f"Seus compromissos de hoje ({date_str})",
+        _digest_html(user.name, date_str, items),
+    )
+
+
+async def send_digest_whatsapp(db, user: User) -> bool:
+    """Envia o resumo do dia pelo WhatsApp (sem checar o toggle). Retorna True se enviou.
+
+    Pressupoe whatsapp_ready(user); o chamador deve validar antes para dar um erro claro.
+    """
+    items, now_local = await _today_items(db, user)
+    date_str = now_local.strftime("%d/%m/%Y")
+    return await send_message(user.evolution_instance, user.whatsapp, _digest_text(date_str, items))
+
+
+async def send_user_digest(db, user: User, force_email: bool = False) -> bool:
+    """Envia o resumo do dia pelos canais HABILITADOS (usado pelo cron). Retorna True se enviou.
+
+    force_email envia o e-mail mesmo com o canal desligado.
+    """
+    sent_any = False
+    if user.daily_digest_email or force_email:
+        if await send_digest_email(db, user):
+            sent_any = True
+    if user.daily_digest_whatsapp and whatsapp_ready(user):
+        if await send_digest_whatsapp(db, user):
+            sent_any = True
     return sent_any
 
 
