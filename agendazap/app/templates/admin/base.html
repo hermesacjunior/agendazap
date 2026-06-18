@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}AgendaZap{% endblock %}</title>
   <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AgendaZap">
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -15,6 +23,7 @@
         <span class="logo-icon">📅</span>
         <span>AgendaZap</span>
       </div>
+      <button id="installBtnTop" class="btn btn-secondary btn-sm" style="display:none; margin-left:auto">⬇️ Instalar</button>
     </header>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <aside class="sidebar" id="appSidebar">
@@ -53,6 +62,7 @@
         {% endif %}
       </nav>
       <div class="sidebar-bottom">
+        <button id="installBtn" class="btn btn-secondary btn-full" style="display:none; margin-bottom: var(--space-3)">⬇️ Instalar app</button>
         <div class="user-pill">
           <div class="user-avatar">{{ user.name[0].upper() }}</div>
           <div class="user-info">
@@ -91,6 +101,33 @@
       sidebar.querySelectorAll('.nav-item').forEach(function (a) {
         a.addEventListener('click', function () { setOpen(false); });
       });
+    })();
+
+    // PWA: registra o service worker e habilita a instalacao nativa.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      });
+    }
+    (function () {
+      var deferred = null;
+      var btns = [document.getElementById('installBtn'), document.getElementById('installBtnTop')].filter(Boolean);
+      function show(visible) { btns.forEach(function (b) { b.style.display = visible ? '' : 'none'; }); }
+      var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (standalone || !btns.length) return;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferred = e;
+        show(true);
+      });
+      btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!deferred) return;
+          deferred.prompt();
+          deferred.userChoice.finally(function () { deferred = null; show(false); });
+        });
+      });
+      window.addEventListener('appinstalled', function () { deferred = null; show(false); });
     })();
   </script>
 </body>

@@ -202,6 +202,17 @@ async def root(request: Request):
     return RedirectResponse(url="/auth/login")
 
 
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    # Servido na raiz para que o escopo do service worker possa cobrir "/".
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        "app/static/sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

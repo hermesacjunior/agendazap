@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="AgendaZap">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b6af8"/>
+      <stop offset="1" stop-color="#7c5bf8"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background so the icon is safe as a maskable icon -->
+  <rect width="512" height="512" fill="url(#g)"/>
+  <!-- Calendar glyph centered within the maskable safe zone (~80%) -->
+  <g fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="128" y="150" width="256" height="234" rx="34"/>
+    <line x1="128" y1="214" x2="384" y2="214"/>
+    <line x1="190" y1="128" x2="190" y2="172"/>
+    <line x1="322" y1="128" x2="322" y2="172"/>
+  </g>
+  <!-- WhatsApp-inspired check / spark mark -->
+  <path d="M196 300 l40 40 l84 -92" fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
