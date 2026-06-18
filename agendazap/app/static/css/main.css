@@ -865,12 +865,17 @@ tr:hover td { background: var(--bg-hover); }
 .sidebar-overlay { display: none; }
 
 @media (max-width: 768px) {
+  /* app-layout e flex-row no desktop; no mobile precisa empilhar para a
+     topbar ocupar a largura toda acima do conteudo (sidebar/overlay sao
+     position:fixed e ficam fora do fluxo). */
+  .app-layout { flex-direction: column; }
   .admin-topbar {
     display: flex;
     align-items: center;
     gap: var(--space-3);
     position: sticky;
     top: 0;
+    width: 100%;
     z-index: var(--z-sidebar);
     background: var(--bg-card);
     border-bottom: 1px solid var(--border);

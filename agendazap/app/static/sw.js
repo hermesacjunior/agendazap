@@ -8,7 +8,7 @@
        conteudo desatualizado ou de outra sessao.
      - Todo o resto (POST, JSON de API, cross-origin) -> direto para a rede.
 */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const STATIC_CACHE = 'az-static-' + VERSION;
 const PRECACHE = [
   '/static/css/main.css',
@@ -59,20 +59,19 @@ self.addEventListener('fetch', (event) => {
   // Nunca toca em requisicoes cross-origin.
   if (url.origin !== self.location.origin) return;
 
-  // Assets estaticos: stale-while-revalidate.
+  // Assets estaticos: network-first (online sempre pega a versao atual;
+  // offline cai no cache). Evita servir CSS/JS desatualizado apos deploy.
   if (isStaticAsset(url)) {
     event.respondWith(
-      caches.open(STATIC_CACHE).then((cache) =>
-        cache.match(req).then((cached) => {
-          const network = fetch(req)
-            .then((res) => {
-              if (res && res.ok) cache.put(req, res.clone());
-              return res;
-            })
-            .catch(() => cached);
-          return cached || network;
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(STATIC_CACHE).then((cache) => cache.put(req, copy));
+          }
+          return res;
         })
-      )
+        .catch(() => caches.match(req))
     );
     return;
   }
