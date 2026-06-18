@@ -12,16 +12,16 @@
 
 <div class="grid-2">
   <div class="card">
-    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Conta</h3>
+    <h3 class="card-title">Conta</h3>
     <p class="text-sm text-muted">Slug público: <strong>/b/{{ target.slug }}</strong></p>
     <p class="text-sm text-muted">Agendas: <strong>{{ schedules_count }}</strong></p>
     <p class="text-sm text-muted">Status: {% if target.is_active %}<span class="badge badge-green">Ativo</span>{% else %}<span class="badge badge-red">Inativo</span>{% endif %}</p>
     <p class="text-sm text-muted">Super-admin: {% if target.is_superadmin %}<span class="badge badge-accent">sim</span>{% else %}não{% endif %}</p>
     <p class="text-sm text-muted">Stripe customer: <strong>{{ target.stripe_customer_id or '—' }}</strong></p>
 
-    <hr style="border-color: var(--border); margin: 16px 0">
+    <hr style="border: none; border-top: 1px solid var(--border); margin: var(--space-4) 0">
 
-    <form method="POST" action="/admin/super/users/{{ target.id }}/plan" style="display:flex; gap:8px; align-items:center; margin-bottom: 12px">
+    <form method="POST" action="/admin/super/users/{{ target.id }}/plan" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom: var(--space-3)">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <label style="margin:0">Plano</label>
       <select name="plan" style="width:auto">
@@ -46,27 +46,27 @@
   </div>
 
   <div class="card">
-    <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Plano atual</h3>
-    <div class="stat-value" style="margin-bottom: 8px">{{ target.plan.value.capitalize() }}</div>
+    <h3 class="card-title">Plano atual</h3>
+    <div class="stat-value" style="margin-bottom: var(--space-2)">{{ target.plan.value.capitalize() }}</div>
     <p class="text-sm text-muted">Use o seletor ao lado para alterar o plano deste usuário a qualquer momento.</p>
   </div>
 </div>
 
 <div class="card mt-6">
-  <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 16px">Histórico de agendamentos ({{ history|length }})</h3>
+  <h3 class="card-title">Histórico de agendamentos ({{ history|length }})</h3>
   {% if history %}
   <div class="table-wrapper">
-    <table>
+    <table class="table-stack">
       <thead>
         <tr><th>Cliente</th><th>Contato</th><th>Data & Hora</th><th>Status</th></tr>
       </thead>
       <tbody>
         {% for h in history %}
         <tr>
-          <td>{{ h.client_name }}</td>
-          <td style="font-size: 13px; color: var(--text-muted)">{{ h.client_email }}</td>
-          <td>{{ h.date }} {{ h.time }}</td>
-          <td>
+          <td data-label="Cliente">{{ h.client_name }}</td>
+          <td data-label="Contato" style="font-size: var(--text-sm); color: var(--text-muted)">{{ h.client_email }}</td>
+          <td data-label="Data & Hora">{{ h.date }} {{ h.time }}</td>
+          <td data-label="Status">
             {% if h.status == 'confirmed' %}<span class="badge badge-green">Confirmado</span>
             {% elif h.status == 'cancelled' %}<span class="badge badge-red">Cancelado</span>
             {% elif h.status == 'completed' %}<span class="badge badge-accent">Concluído</span>
