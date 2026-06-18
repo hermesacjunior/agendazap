@@ -23,8 +23,8 @@
       </div>
       <div class="form-group">
         <label>Email</label>
-        <input type="email" value="{{ user.email }}" disabled style="opacity: 0.5">
-        <span style="font-size: 12px; color: var(--text-muted)">Email não pode ser alterado</span>
+        <input type="email" value="{{ user.email }}" disabled>
+        <span class="field-hint">Email não pode ser alterado</span>
       </div>
       <div class="form-group">
         <label>WhatsApp (com DDD)</label>
@@ -42,13 +42,13 @@
           </label>
           <span>Receber notificações por e-mail</span>
         </label>
-        <span style="font-size: 12px; color: var(--text-muted)">
+        <span class="field-hint">
           Avisa você em <strong>{{ user.email }}</strong> a cada novo agendamento ou cancelamento.
         </span>
       </div>
 
       {% if user.plan.value == 'pro' %}
-      <div class="form-group" style="border-top: 1px solid var(--border, #2a2a2a); padding-top: 16px">
+      <div class="form-group" style="border-top: 1px solid var(--border); padding-top: var(--space-4)">
         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer">
           <label class="toggle" style="margin: 0">
             <input type="checkbox" name="daily_digest_enabled" value="1" {% if user.daily_digest_enabled %}checked{% endif %}>
@@ -56,7 +56,7 @@
           </label>
           <span>Resumo diário dos meus compromissos</span>
         </label>
-        <span style="font-size: 12px; color: var(--text-muted)">
+        <span class="field-hint">
           Todo dia, no horário escolhido, você recebe a lista dos compromissos do dia.
         </span>
       </div>
@@ -81,7 +81,7 @@
         </div>
       </div>
 
-      <div class="form-group" style="border-top: 1px solid var(--border, #2a2a2a); padding-top: 16px">
+      <div class="form-group" style="border-top: 1px solid var(--border); padding-top: var(--space-4)">
         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer">
           <label class="toggle" style="margin: 0">
             <input type="checkbox" name="reminder_enabled" value="1" {% if user.reminder_enabled %}checked{% endif %}>
@@ -89,7 +89,7 @@
           </label>
           <span>Lembrar o cliente antes do agendamento</span>
         </label>
-        <span style="font-size: 12px; color: var(--text-muted)">
+        <span class="field-hint">
           Envia um lembrete ao cliente algumas horas antes do horário marcado.
         </span>
       </div>
@@ -125,9 +125,9 @@
     </form>
   </div>
 
-  <div style="display: flex; flex-direction: column; gap: 16px">
+  <div class="flex flex-col gap-4">
     <div class="card">
-      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">Seu Link Público</h3>
+      <h3 class="card-title" style="margin-bottom: var(--space-3)">Seu Link Público</h3>
       <div class="link-box">
         <input type="text" id="linkInput" value="{{ app_url }}/b/{{ user.slug }}" readonly>
         <button class="btn btn-sm btn-secondary" onclick="copyLink()">Copiar</button>
@@ -138,31 +138,31 @@
     </div>
 
     <div class="card">
-      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">Notificações por e-mail</h3>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px">
+      <h3 class="card-title" style="margin-bottom: var(--space-3)">Notificações por e-mail</h3>
+      <p class="text-sm text-muted" style="margin-bottom: var(--space-3)">
         Envie um e-mail de teste para <strong>{{ user.email }}</strong> e confirme que está recebendo.
       </p>
       <button type="button" class="btn btn-secondary btn-full" id="testEmailBtn" onclick="sendTestEmail()">
         ✉️ Enviar e-mail de teste
       </button>
-      <div id="testEmailMsg" style="font-size: 13px; margin-top: 10px"></div>
+      <div id="testEmailMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
       {% if user.plan.value == 'pro' %}
-      <button type="button" class="btn btn-secondary btn-full" id="testDigestBtn" onclick="sendTestDigest()" style="margin-top: 10px">
+      <button type="button" class="btn btn-secondary btn-full" id="testDigestBtn" onclick="sendTestDigest()" style="margin-top: var(--space-2)">
         📅 Enviar resumo do dia (teste)
       </button>
-      <div id="testDigestMsg" style="font-size: 13px; margin-top: 10px"></div>
+      <div id="testDigestMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
       {% endif %}
     </div>
 
     <div class="card">
-      <h3 style="font-family: 'Syne', sans-serif; margin-bottom: 12px">Conta</h3>
-      <div style="font-size: 14px; display: flex; flex-direction: column; gap: 8px">
-        <div class="flex justify-between">
-          <span style="color: var(--text-muted)">Plano</span>
+      <h3 class="card-title" style="margin-bottom: var(--space-3)">Conta</h3>
+      <div class="flex flex-col gap-2" style="font-size: var(--text-base)">
+        <div class="flex justify-between items-center">
+          <span class="text-muted">Plano</span>
           <span class="badge badge-accent">{{ user.plan.value.capitalize() }}</span>
         </div>
-        <div class="flex justify-between">
-          <span style="color: var(--text-muted)">Membro desde</span>
+        <div class="flex justify-between items-center">
+          <span class="text-muted">Membro desde</span>
           <span>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else '—' }}</span>
         </div>
       </div>
