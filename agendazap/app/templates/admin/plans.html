@@ -17,8 +17,8 @@
 <div class="alert alert-error">{{ error }}</div>
 {% endif %}
 
-<div style="text-align: center; margin-bottom: 32px">
-  <p style="color: var(--text-muted)">Plano atual: <strong style="color: var(--accent)">{{ user.plan.value.capitalize() }}</strong></p>
+<div class="text-center" style="margin-bottom: var(--space-8)">
+  <p class="text-muted">Plano atual: <strong style="color: var(--accent)">{{ user.plan.value.capitalize() }}</strong></p>
 </div>
 
 <div class="plans-grid">
@@ -52,7 +52,7 @@
     </ul>
     {% if user.plan.value == 'basic' %}
     <button class="btn btn-secondary btn-full" disabled>Plano Atual</button>
-    <form method="POST" action="/plans/portal" style="margin-top: 10px">
+    <form method="POST" action="/plans/portal" style="margin-top: var(--space-2)">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-secondary btn-full">Gerenciar assinatura</button>
     </form>
@@ -83,7 +83,7 @@
     </ul>
     {% if user.plan.value == 'pro' %}
     <button class="btn btn-primary btn-full" disabled>Plano Atual</button>
-    <form method="POST" action="/plans/portal" style="margin-top: 10px">
+    <form method="POST" action="/plans/portal" style="margin-top: var(--space-2)">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
       <button type="submit" class="btn btn-secondary btn-full">Gerenciar assinatura</button>
     </form>
@@ -96,7 +96,7 @@
   </div>
 </div>
 
-<div style="text-align: center; margin-top: 32px; color: var(--text-muted); font-size: 13px">
+<div class="text-center text-sm text-muted" style="margin-top: var(--space-8)">
   Pagamentos processados com seguran&ccedil;a via Stripe &middot; Cancele quando quiser
 </div>
 {% endblock %}
