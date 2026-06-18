@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System v2 — AgendaZap</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <style>
+    /* Estilos APENAS desta página de showcase (não fazem parte do design system) */
+    .sg-wrap { max-width: 980px; margin: 0 auto; padding: var(--space-8) var(--space-4) var(--space-16); }
+    .sg-head { margin-bottom: var(--space-10); }
+    .sg-eyebrow { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--accent); font-weight: var(--weight-semibold); }
+    .sg-h1 { font-size: var(--text-4xl); margin: var(--space-2) 0; }
+    .sg-section { margin-bottom: var(--space-12); }
+    .sg-section > h2 { font-size: var(--text-xl); margin-bottom: var(--space-2); }
+    .sg-section > p.sg-desc { color: var(--text-muted); font-size: var(--text-base); margin-bottom: var(--space-5); }
+    .sg-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+    .sg-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-3); }
+    .sg-swatch { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .sg-swatch .chip { height: 56px; }
+    .sg-swatch .meta { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); }
+    .sg-swatch .meta b { display: block; font-size: var(--text-sm); }
+    .sg-type-row { display: flex; align-items: baseline; gap: var(--space-4); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-light); }
+    .sg-type-row .lbl { width: 90px; color: var(--text-dim); font-size: var(--text-xs); flex-shrink: 0; }
+    .sg-space-bar { background: var(--accent); height: 16px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="sg-wrap">
+
+  <header class="sg-head">
+    <div class="sg-eyebrow">FASE 1 · Design System</div>
+    <h1 class="sg-h1">AgendaZap UI v2</h1>
+    <p class="text-muted">Tokens, estados e componentes base. Esta página é só para revisão — nenhuma tela real foi alterada.</p>
+  </header>
+
+  <!-- CORES -->
+  <section class="sg-section">
+    <h2>Cores</h2>
+    <p class="sg-desc">Marca roxo/azul preservada, status (verde/vermelho/amarelo) e superfícies dark.</p>
+    <div class="sg-swatches">
+      <div class="sg-swatch"><div class="chip" style="background:var(--accent)"></div><div class="meta"><b>Accent</b>#5b6af8</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--accent-hover)"></div><div class="meta"><b>Accent hover</b>#4a58e8</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--green)"></div><div class="meta"><b>Verde</b>#22c55e</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--red)"></div><div class="meta"><b>Vermelho</b>#ef4444</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--yellow)"></div><div class="meta"><b>Amarelo</b>#f59e0b</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--bg)"></div><div class="meta"><b>BG</b>#0a0a0f</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--bg-card)"></div><div class="meta"><b>Card</b>#111118</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--bg-input)"></div><div class="meta"><b>Input</b>#1a1a24</div></div>
+      <div class="sg-swatch"><div class="chip" style="background:var(--border)"></div><div class="meta"><b>Border</b>#2a2a38</div></div>
+    </div>
+  </section>
+
+  <!-- TIPOGRAFIA -->
+  <section class="sg-section">
+    <h2>Tipografia</h2>
+    <p class="sg-desc">System font stack (à la Apple) — nítida, sem requisição externa, compatível com a CSP.</p>
+    <div class="card">
+      <div class="sg-type-row"><span class="lbl">4xl / 36</span><span style="font-size:var(--text-4xl);font-weight:700;letter-spacing:var(--tracking-tight)">Agende em segundos</span></div>
+      <div class="sg-type-row"><span class="lbl">2xl / 24</span><span style="font-size:var(--text-2xl);font-weight:700;letter-spacing:var(--tracking-tight)">Título de página</span></div>
+      <div class="sg-type-row"><span class="lbl">xl / 20</span><span style="font-size:var(--text-xl);font-weight:600">Subtítulo de seção</span></div>
+      <div class="sg-type-row"><span class="lbl">base / 14</span><span style="font-size:var(--text-base)">Texto de corpo padrão da interface.</span></div>
+      <div class="sg-type-row"><span class="lbl">sm / 13</span><span style="font-size:var(--text-sm);color:var(--text-muted)">Texto auxiliar / labels.</span></div>
+      <div class="sg-type-row"><span class="lbl">xs / 12</span><span style="font-size:var(--text-xs);color:var(--text-dim);text-transform:uppercase;letter-spacing:var(--tracking-wide)">Rótulo / overline</span></div>
+    </div>
+  </section>
+
+  <!-- ESPAÇAMENTO -->
+  <section class="sg-section">
+    <h2>Espaçamento</h2>
+    <p class="sg-desc">Escala em grid de 4px.</p>
+    <div class="card flex flex-col gap-2">
+      <div class="flex items-center gap-4"><span style="width:60px;color:var(--text-dim);font-size:var(--text-xs)">4 / 8</span><span class="sg-space-bar" style="width:4px"></span><span class="sg-space-bar" style="width:8px"></span></div>
+      <div class="flex items-center gap-4"><span style="width:60px;color:var(--text-dim);font-size:var(--text-xs)">12 / 16</span><span class="sg-space-bar" style="width:12px"></span><span class="sg-space-bar" style="width:16px"></span></div>
+      <div class="flex items-center gap-4"><span style="width:60px;color:var(--text-dim);font-size:var(--text-xs)">24 / 32</span><span class="sg-space-bar" style="width:24px"></span><span class="sg-space-bar" style="width:32px"></span></div>
+      <div class="flex items-center gap-4"><span style="width:60px;color:var(--text-dim);font-size:var(--text-xs)">48 / 64</span><span class="sg-space-bar" style="width:48px"></span><span class="sg-space-bar" style="width:64px"></span></div>
+    </div>
+  </section>
+
+  <!-- BOTÕES -->
+  <section class="sg-section">
+    <h2>Botões</h2>
+    <p class="sg-desc">Variantes, tamanhos e estados (hover, active, disabled, loading). Toque mínimo 40px+.</p>
+    <div class="sg-row" style="margin-bottom:var(--space-4)">
+      <button class="btn btn-primary">Primário</button>
+      <button class="btn btn-secondary">Secundário</button>
+      <button class="btn btn-danger">Perigo</button>
+      <button class="btn btn-ghost">Fantasma</button>
+    </div>
+    <div class="sg-row" style="margin-bottom:var(--space-4)">
+      <button class="btn btn-primary btn-sm">Pequeno</button>
+      <button class="btn btn-primary">Padrão</button>
+      <button class="btn btn-primary btn-lg">Grande</button>
+    </div>
+    <div class="sg-row">
+      <button class="btn btn-primary" disabled>Desabilitado</button>
+      <button class="btn btn-primary is-loading">Carregando</button>
+      <button class="btn btn-secondary is-loading">Carregando</button>
+    </div>
+  </section>
+
+  <!-- FORMULÁRIOS -->
+  <section class="sg-section">
+    <h2>Formulários</h2>
+    <p class="sg-desc">Foco com anel acessível, placeholder, estado inválido e desabilitado.</p>
+    <div class="card grid-2">
+      <div class="form-group">
+        <label for="f1">Nome</label>
+        <input id="f1" placeholder="Ex.: Maria Silva">
+      </div>
+      <div class="form-group">
+        <label for="f2">E-mail</label>
+        <input id="f2" type="email" value="maria@exemplo.com">
+      </div>
+      <div class="form-group">
+        <label for="f3">Campo inválido</label>
+        <input id="f3" class="is-invalid" value="valor errado">
+        <span class="field-error">Esse campo precisa ser corrigido.</span>
+      </div>
+      <div class="form-group">
+        <label for="f4">Desabilitado</label>
+        <input id="f4" value="Somente leitura" disabled>
+        <span class="field-hint">Dica de preenchimento.</span>
+      </div>
+      <div class="form-group">
+        <label for="f5">Seleção</label>
+        <select id="f5"><option>Agenda pessoal</option><option>Agenda trabalho</option></select>
+      </div>
+      <div class="form-group">
+        <label for="f6">Observações</label>
+        <textarea id="f6" placeholder="Escreva aqui..."></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOGGLE -->
+  <section class="sg-section">
+    <h2>Toggle</h2>
+    <p class="sg-desc">Switch acessível (foco por teclado, estado desabilitado).</p>
+    <div class="card sg-row" style="gap:var(--space-6)">
+      <label class="flex items-center gap-2"><span class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></span><span class="text-sm">Notificações por e-mail</span></label>
+      <label class="flex items-center gap-2"><span class="toggle"><input type="checkbox"><span class="toggle-slider"></span></span><span class="text-sm">Lembrete por WhatsApp</span></label>
+      <label class="flex items-center gap-2"><span class="toggle"><input type="checkbox" disabled><span class="toggle-slider"></span></span><span class="text-sm text-muted">Desabilitado</span></label>
+    </div>
+  </section>
+
+  <!-- BADGES -->
+  <section class="sg-section">
+    <h2>Badges &amp; Status</h2>
+    <div class="card sg-row" style="gap:var(--space-3)">
+      <span class="badge badge-green">Confirmado</span>
+      <span class="badge badge-yellow">Pendente</span>
+      <span class="badge badge-red">Cancelado</span>
+      <span class="badge badge-accent">Pro</span>
+      <span class="badge badge-muted">Rascunho</span>
+      <span class="flex items-center gap-2"><span class="status-dot green"></span><span class="text-sm">Conectado</span></span>
+      <span class="flex items-center gap-2"><span class="status-dot red"></span><span class="text-sm">Offline</span></span>
+    </div>
+  </section>
+
+  <!-- CARDS -->
+  <section class="sg-section">
+    <h2>Cards &amp; Stats</h2>
+    <div class="stats-grid">
+      <div class="stat-card"><span class="stat-icon">📅</span><span class="stat-label">Hoje</span><span class="stat-value">8</span></div>
+      <div class="stat-card"><span class="stat-icon">✅</span><span class="stat-label">Confirmados</span><span class="stat-value">142</span></div>
+      <div class="stat-card"><span class="stat-icon">⏳</span><span class="stat-label">Pendentes</span><span class="stat-value">3</span></div>
+    </div>
+    <div class="card card-hover">Card com hover (passe o mouse).</div>
+  </section>
+
+  <!-- TABELA -->
+  <section class="sg-section">
+    <h2>Tabela</h2>
+    <div class="card" style="padding:0">
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Cliente</th><th>Data</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Maria Silva</td><td>18/06 · 14:00</td><td><span class="badge badge-green">Confirmado</span></td></tr>
+            <tr><td>João Souza</td><td>18/06 · 15:30</td><td><span class="badge badge-yellow">Pendente</span></td></tr>
+            <tr><td>Ana Costa</td><td>19/06 · 09:00</td><td><span class="badge badge-red">Cancelado</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALERTAS -->
+  <section class="sg-section">
+    <h2>Alertas</h2>
+    <div class="alert alert-success">Agendamento confirmado com sucesso.</div>
+    <div class="alert alert-error">Não foi possível salvar. Tente novamente.</div>
+    <div class="alert alert-warning">Sua agenda está quase cheia para hoje.</div>
+    <div class="alert alert-info">Recurso disponível no plano Pro.</div>
+  </section>
+
+  <!-- LOADING / SKELETON / EMPTY -->
+  <section class="sg-section">
+    <h2>Carregamento &amp; Vazio</h2>
+    <div class="grid-2">
+      <div class="card">
+        <p class="text-sm text-muted" style="margin-bottom:var(--space-4)">Skeletons</p>
+        <span class="skeleton skeleton-title"></span>
+        <span class="skeleton skeleton-text skeleton-line-80"></span>
+        <span class="skeleton skeleton-text skeleton-line-60"></span>
+        <div style="margin-top:var(--space-4)"></div>
+        <span class="skeleton skeleton-card"></span>
+      </div>
+      <div class="card flex flex-col items-center justify-center gap-4">
+        <span class="spinner spinner-lg"></span>
+        <span class="text-sm text-muted">Carregando horários…</span>
+      </div>
+    </div>
+    <div class="card" style="margin-top:var(--space-4)">
+      <div class="empty-state">
+        <div class="empty-icon">🗓️</div>
+        <div class="empty-title">Nenhum agendamento ainda</div>
+        <div class="empty-desc">Compartilhe seu link de agenda para começar a receber clientes.</div>
+        <button class="btn btn-primary">Copiar link da agenda</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL -->
+  <section class="sg-section">
+    <h2>Modal</h2>
+    <p class="sg-desc">Diálogo com overlay desfocado e animação suave de entrada.</p>
+    <button class="btn btn-secondary" id="openModal">Abrir modal</button>
+    <div class="modal-overlay" id="demoModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+        <div class="modal-header"><h3 class="modal-title" id="mTitle">Cancelar agendamento?</h3></div>
+        <div class="modal-body">Essa ação não pode ser desfeita. O cliente será notificado do cancelamento.</div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="closeModal">Voltar</button>
+          <button class="btn btn-danger">Cancelar agendamento</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script>
+  var open = document.getElementById('openModal');
+  var modal = document.getElementById('demoModal');
+  var close = document.getElementById('closeModal');
+  open.addEventListener('click', function(){ modal.hidden = false; });
+  close.addEventListener('click', function(){ modal.hidden = true; });
+  modal.addEventListener('click', function(e){ if (e.target === modal) modal.hidden = true; });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') modal.hidden = true; });
+</script>
+</body>
+</html>
