@@ -8,7 +8,7 @@
        conteudo desatualizado ou de outra sessao.
      - Todo o resto (POST, JSON de API, cross-origin) -> direto para a rede.
 */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const STATIC_CACHE = 'az-static-' + VERSION;
 const PRECACHE = [
   '/static/css/main.css?v=4',
@@ -89,4 +89,33 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Default: passa direto para a rede.
+});
+
+// ===== Web Push: exibe a notificacao nativa =====
+self.addEventListener('push', function (event) {
+  var data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
+  var title = data.title || 'AgendaZap';
+  var options = {
+    body: data.body || '',
+    icon: '/static/icons/icon-192.png',
+    badge: '/static/icons/icon-192.png',
+    data: { url: data.url || '/admin/dashboard' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Ao clicar na notificacao, foca uma aba aberta ou abre o app.
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var target = (event.notification.data && event.notification.data.url) || '/admin/dashboard';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        var c = list[i];
+        if (c.url.indexOf(target) !== -1 && 'focus' in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+    })
+  );
 });

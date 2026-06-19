@@ -22,6 +22,7 @@ from app.services.email_service import (
     notify_client_cancellation_email,
 )
 from app.services.auth_service import create_booking_cancel_token, decode_booking_cancel_token
+from app.services.push_service import notify_user
 from app.security import clean_multiline, clean_phone, clean_text, install_template_security, require_csrf_token
 
 router = APIRouter()
@@ -161,6 +162,13 @@ async def cancel_booking_action(
                 await notify_client_cancellation_email(booking.client_email, data)
         except Exception:
             pass
+        if owner:
+            await notify_user(
+                db, owner.id,
+                "Agendamento cancelado",
+                f"{booking.client_name} — {data['date']} {data['time']}",
+                "/admin/bookings",
+            )
 
     return templates.TemplateResponse("public/cancel.html", {"request": request, "done": True})
 
@@ -419,6 +427,14 @@ async def create_booking(
         await db.commit()
     except Exception:
         pass  # Notificações não devem quebrar o agendamento
+
+    # Push nativo para o dono (PWA instalado).
+    await notify_user(
+        db, user.id,
+        "Novo agendamento",
+        f"{client_name} — {local_start.strftime('%d/%m %H:%M')}",
+        "/admin/bookings",
+    )
 
     return RedirectResponse(
         url=f"/b/{slug}/success?booking_id={booking.id}",

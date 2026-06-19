@@ -43,7 +43,7 @@ async def get_db():
 
 
 async def create_tables():
-    from app.models import user, schedule, booking, plan  # noqa
+    from app.models import user, schedule, booking, plan, push  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         # create_all nao altera tabelas existentes; garante colunas novas no

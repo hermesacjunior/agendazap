@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, delete
 from datetime import datetime, timedelta, timezone
 import json
 import re
@@ -23,6 +23,8 @@ from app.services.email_service import (
 )
 from app.services.schedule_service import BRAZIL_TZ, utc_to_brazil
 from app.services.reminder_service import send_digest_email, send_digest_whatsapp, whatsapp_ready
+from app.services.push_service import VAPID_PUBLIC_KEY, push_enabled
+from app.models.push import PushSubscription
 from app.services.sms_service import notify_client_cancellation_sms
 from app.services.whatsapp_service import (
     connect_instance,
@@ -688,6 +690,8 @@ async def profile(
         "request": request,
         "user": current_user,
         "app_url": APP_URL,
+        "vapid_public_key": VAPID_PUBLIC_KEY,
+        "push_enabled": push_enabled(),
     })
 
 
@@ -723,6 +727,60 @@ async def save_profile(
     current_user.reminder_hours = clean_int(data.get("reminder_hours"), default=24, minimum=1, maximum=168)
     await db.commit()
     return RedirectResponse(url="/admin/profile?saved=1", status_code=302)
+
+
+@router.post("/push/subscribe")
+async def push_subscribe(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    require_csrf_token(request, request.headers.get("x-csrf-token"))
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Dados inválidos."}, status_code=400)
+    endpoint = (body or {}).get("endpoint")
+    keys = (body or {}).get("keys") or {}
+    p256dh = keys.get("p256dh")
+    auth = keys.get("auth")
+    if not endpoint or not p256dh or not auth:
+        return JSONResponse({"ok": False, "error": "Inscrição incompleta."}, status_code=400)
+
+    existing = (
+        await db.execute(select(PushSubscription).where(PushSubscription.endpoint == endpoint))
+    ).scalar_one_or_none()
+    if existing:
+        existing.user_id = current_user.id
+        existing.p256dh = p256dh
+        existing.auth = auth
+    else:
+        db.add(PushSubscription(user_id=current_user.id, endpoint=endpoint, p256dh=p256dh, auth=auth))
+    await db.commit()
+    return JSONResponse({"ok": True})
+
+
+@router.post("/push/unsubscribe")
+async def push_unsubscribe(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    require_csrf_token(request, request.headers.get("x-csrf-token"))
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    endpoint = (body or {}).get("endpoint")
+    if endpoint:
+        await db.execute(
+            delete(PushSubscription).where(and_(
+                PushSubscription.endpoint == endpoint,
+                PushSubscription.user_id == current_user.id,
+            ))
+        )
+        await db.commit()
+    return JSONResponse({"ok": True})
 
 
 @router.post("/profile/digest/email")

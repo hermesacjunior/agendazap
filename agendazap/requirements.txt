@@ -15,3 +15,4 @@ pytz==2024.1
 python-dotenv==1.0.1
 email-validator==2.1.1
 apscheduler==3.10.4
+pywebpush==1.14.1

@@ -14,6 +14,7 @@ from app.services.schedule_service import BRAZIL_TZ, utc_to_brazil
 from app.services.email_service import send_email
 from app.services.whatsapp_service import send_message
 from app.services.auth_service import create_booking_cancel_token
+from app.services.push_service import notify_user
 
 logger = logging.getLogger(__name__)
 APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
@@ -123,6 +124,14 @@ async def send_user_digest(db, user: User, force_email: bool = False) -> bool:
     if user.daily_digest_whatsapp and whatsapp_ready(user):
         if await send_digest_whatsapp(db, user):
             sent_any = True
+    # Push nativo (no-op se o usuario nao tiver dispositivo inscrito).
+    try:
+        items, now_local = await _today_items(db, user)
+        date_str = now_local.strftime("%d/%m/%Y")
+        body = "Você não tem compromissos hoje. 🎉" if not items else f"Você tem {len(items)} compromisso(s) hoje."
+        await notify_user(db, user.id, f"Resumo do dia {date_str}", body, "/admin/bookings")
+    except Exception:
+        logger.exception("Falha no push do resumo do usuario %s", user.id)
     return sent_any
 
 
@@ -183,6 +192,14 @@ async def _send_appointment_reminder(db, user: User, booking: Booking) -> None:
             "_AgendaZap_"
         )
         await send_message(user.evolution_instance, booking.client_whatsapp, msg)
+
+    # Push nativo para o dono lembrando do proprio compromisso.
+    await notify_user(
+        db, user.id,
+        "Lembrete de compromisso",
+        f"{booking.client_name} — {date_str} {time_str}",
+        "/admin/bookings",
+    )
 
 
 async def run_appointment_reminders() -> None:
