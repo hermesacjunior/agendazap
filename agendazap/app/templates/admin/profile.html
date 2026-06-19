@@ -91,10 +91,16 @@
           <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 6px">
             <input type="checkbox" name="daily_digest_email" value="1" {% if user.daily_digest_email %}checked{% endif %}> E-mail
           </label>
+          {% if user.whatsapp_connected %}
           <label style="display: flex; align-items: center; gap: 8px; font-size: 14px">
             <input type="checkbox" name="daily_digest_whatsapp" value="1" {% if user.daily_digest_whatsapp %}checked{% endif %}> WhatsApp
-            {% if user.plan.value != 'pro' %}<span style="font-size: 11px; color: var(--text-muted)">(Pro)</span>{% endif %}
           </label>
+          {% else %}
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; opacity: 0.55">
+            <input type="checkbox" disabled> WhatsApp
+          </label>
+          <a href="/admin/whatsapp" class="field-hint" style="color: var(--accent)">Conecte seu WhatsApp para enviar o resumo por lá →</a>
+          {% endif %}
         </div>
       </div>
 
@@ -107,7 +113,7 @@
           <span>Lembrar o cliente antes do agendamento</span>
         </label>
         <span class="field-hint">
-          Envia um lembrete ao cliente algumas horas antes do horário marcado.
+          Envia um lembrete ao cliente algumas horas antes do horário marcado. Pelo WhatsApp, a mensagem sai do <strong>seu WhatsApp conectado</strong> para o número que o cliente informou — o cliente não precisa conectar nada.
         </span>
       </div>
       <div class="grid-2">
@@ -126,9 +132,16 @@
           <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 6px">
             <input type="checkbox" name="reminder_email" value="1" {% if user.reminder_email %}checked{% endif %}> E-mail
           </label>
+          {% if user.whatsapp_connected %}
           <label style="display: flex; align-items: center; gap: 8px; font-size: 14px">
             <input type="checkbox" name="reminder_whatsapp" value="1" {% if user.reminder_whatsapp %}checked{% endif %}> WhatsApp
           </label>
+          {% else %}
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; opacity: 0.55">
+            <input type="checkbox" disabled> WhatsApp
+          </label>
+          <a href="/admin/whatsapp" class="field-hint" style="color: var(--accent)">Conecte seu WhatsApp para usar este canal →</a>
+          {% endif %}
         </div>
       </div>
       {% else %}
@@ -164,10 +177,17 @@
         📅 Enviar resumo do dia
       </button>
       <div id="digestEmailMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
+      {% if user.whatsapp_connected %}
       <button type="button" class="btn btn-secondary btn-full" id="digestWhatsappBtn" onclick="sendDigestWhatsapp()" style="margin-top: var(--space-2)">
         💬 Enviar resumo pelo WhatsApp
       </button>
       <div id="digestWhatsappMsg" class="text-sm" style="margin-top: var(--space-2)"></div>
+      {% else %}
+      <button type="button" class="btn btn-secondary btn-full" style="margin-top: var(--space-2)" disabled>
+        💬 Enviar resumo pelo WhatsApp
+      </button>
+      <a href="/admin/whatsapp" class="field-hint" style="color: var(--accent); display: block; margin-top: var(--space-2)">Conecte seu WhatsApp para usar esta opção →</a>
+      {% endif %}
       {% else %}
       <p class="text-sm text-muted">Disponível no plano <a href="/plans" style="color: var(--accent); font-weight: 600">Pro</a>.</p>
       {% endif %}
