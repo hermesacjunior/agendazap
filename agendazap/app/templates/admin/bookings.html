@@ -112,8 +112,20 @@
           </td>
           <td data-label="Notificações">
             <div style="display: flex; gap: 4px">
-              <span title="WhatsApp Admin" class="badge {% if booking.whatsapp_sent_admin %}badge-green{% else %}badge-red{% endif %}">WA</span>
-              <span title="Email Admin" class="badge {% if booking.email_sent_admin %}badge-green{% else %}badge-red{% endif %}">✉</span>
+              {% if booking.whatsapp_sent_admin %}
+              <span title="WhatsApp enviado" class="badge badge-green">WA</span>
+              {% elif user.plan.value != 'pro' or not user.whatsapp_connected %}
+              <span title="WhatsApp não conectado (canal inativo)" class="badge badge-muted">WA —</span>
+              {% else %}
+              <span title="Falha ao enviar o WhatsApp" class="badge badge-red">WA</span>
+              {% endif %}
+              {% if booking.email_sent_admin %}
+              <span title="E-mail enviado" class="badge badge-green">✉</span>
+              {% elif not user.email_notifications %}
+              <span title="Notificações por e-mail desativadas" class="badge badge-muted">✉ —</span>
+              {% else %}
+              <span title="Falha ao enviar o e-mail" class="badge badge-red">✉</span>
+              {% endif %}
             </div>
           </td>
           <td data-label="Ações">
