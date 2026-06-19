@@ -40,11 +40,11 @@
       </div>
       <div class="form-group">
         <label>Data *</label>
-        <input type="date" name="date_str" required>
+        <input type="date" name="date_str" id="bookingDate" required>
       </div>
       <div class="form-group">
         <label>Hora *</label>
-        <input type="time" name="time_str" required>
+        <select name="time_str" id="bookingTime" required></select>
       </div>
       <div class="form-group">
         <label>Duração (min)</label>
@@ -147,4 +147,40 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var dateEl = document.getElementById('bookingDate');
+  var timeEl = document.getElementById('bookingTime');
+  if (!dateEl || !timeEl) return;
+
+  // Data atual automaticamente (fuso do navegador = horario local do usuario),
+  // e impede escolher datas passadas.
+  var now = new Date();
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+  if (!dateEl.value) dateEl.value = today;
+  dateEl.min = today;
+
+  // Horarios selecionaveis (passos de 15 min, dia inteiro).
+  var frag = document.createDocumentFragment();
+  for (var h = 0; h < 24; h++) {
+    for (var m = 0; m < 60; m += 15) {
+      var v = pad(h) + ':' + pad(m);
+      var opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      frag.appendChild(opt);
+    }
+  }
+  timeEl.appendChild(frag);
+
+  // Pre-seleciona o proximo horario "redondo" a partir de agora.
+  var mins = now.getHours() * 60 + now.getMinutes();
+  var next = Math.ceil(mins / 15) * 15;
+  if (next >= 24 * 60) next = 9 * 60; // vira o dia -> sugere 09:00
+  timeEl.value = pad(Math.floor(next / 60)) + ':' + pad(next % 60);
+})();
+</script>
 {% endblock %}

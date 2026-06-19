@@ -18,6 +18,7 @@ from app.models.booking import Booking, BookingStatus
 from app.services.auth_service import require_user
 from app.services.email_service import (
     notify_admin_cancellation_email,
+    notify_admin_email,
     notify_client_cancellation_email,
 )
 from app.services.schedule_service import BRAZIL_TZ, utc_to_brazil
@@ -34,6 +35,7 @@ from app.services.whatsapp_service import (
     get_qrcode,
     check_connection,
     logout_instance,
+    notify_admin_new_booking,
     set_quiet_instance_settings,
 )
 from app.security import clean_int, clean_multiline, clean_phone, clean_text, install_template_security, require_csrf_token
@@ -389,6 +391,7 @@ async def create_own_booking(
         schedule_id=schedule.id,
         client_name=title,
         client_email=current_user.email,
+        client_whatsapp=current_user.whatsapp or "",
         client_notes=notes,
         start_datetime=utc_start,
         end_datetime=utc_end,
@@ -396,6 +399,35 @@ async def create_own_booking(
     )
     db.add(booking)
     await db.commit()
+    await db.refresh(booking)
+
+    # Notifica o proprio dono (mesma logica do agendamento publico) e registra
+    # os flags para a coluna "Notificações" refletir o que foi enviado.
+    booking_data = {
+        "client_name": title,
+        "client_email": current_user.email,
+        "client_whatsapp": current_user.whatsapp or "Não informado",
+        "admin_name": current_user.name,
+        "date": local_start.strftime("%d/%m/%Y"),
+        "time": local_start.strftime("%H:%M"),
+        "notes": notes or "Nenhuma",
+    }
+    try:
+        if (
+            current_user.plan.value == "pro"
+            and current_user.whatsapp
+            and current_user.evolution_instance
+            and current_user.whatsapp_connected
+        ):
+            booking.whatsapp_sent_admin = await notify_admin_new_booking(
+                current_user.evolution_instance, current_user.whatsapp, booking_data
+            )
+        if current_user.email_notifications:
+            booking.email_sent_admin = await notify_admin_email(current_user.email, booking_data)
+        await db.commit()
+    except Exception:
+        logger.exception("Falha ao notificar self-booking do usuario %s", current_user.id)
+
     return RedirectResponse(url="/admin/bookings?created=1", status_code=302)
 
 
