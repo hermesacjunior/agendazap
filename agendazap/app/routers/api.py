@@ -13,8 +13,16 @@ from app.database import get_db
 from app.models.booking import Booking, BookingStatus
 from app.models.schedule import Schedule
 from app.models.user import User
-from app.services.auth_service import create_access_token_for, get_current_user, get_password_hash, verify_password
+from app.services.auth_service import (
+    create_access_token_for,
+    create_email_verification_token,
+    get_current_user,
+    get_password_hash,
+    verify_password,
+)
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
+from app.services.email_validation import validate_signup_email
+from app.services.email_service import send_account_verification
 
 router = APIRouter(prefix="/api")
 APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
@@ -131,14 +139,19 @@ async def api_login(payload: AuthLogin, db: AsyncSession = Depends(get_db)):
     email = payload.email.lower()
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    if not user or not user.is_active or not verify_password(payload.password, user.hashed_password):
+    if not user or not user.is_active or getattr(user, "is_blocked", False) or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
+    if not getattr(user, "email_verified", True):
+        raise HTTPException(status_code=403, detail="Confirme seu e-mail antes de entrar.")
     return {"access_token": create_access_token_for(user), "token_type": "bearer"}
 
 
 @router.post("/auth/register", status_code=201)
 async def api_register(payload: AuthRegister, db: AsyncSession = Depends(get_db)):
     email = payload.email.lower()
+    email_ok, email_error = validate_signup_email(email)
+    if not email_ok:
+        raise HTTPException(status_code=422, detail=email_error)
     result = await db.execute(select(User).where(User.email == email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email ja cadastrado.")
@@ -149,6 +162,7 @@ async def api_register(payload: AuthRegister, db: AsyncSession = Depends(get_db)
         hashed_password=get_password_hash(payload.password),
         whatsapp=payload.whatsapp,
         slug=_generate_slug(payload.name),
+        email_verified=False,
     )
     db.add(user)
     await db.flush()
@@ -166,7 +180,12 @@ async def api_register(payload: AuthRegister, db: AsyncSession = Depends(get_db)
         )
     )
     await db.commit()
-    return {"access_token": create_access_token_for(user), "token_type": "bearer"}
+
+    # Conta nasce nao confirmada: envia o link e nao retorna token (a sessao so
+    # vale apos confirmar o e-mail).
+    token = create_email_verification_token(user)
+    await send_account_verification(user.email, user.name, f"{APP_URL}/auth/confirm-email?token={token}")
+    return {"detail": "Conta criada. Confirme seu e-mail para ativar a conta.", "email_verification_required": True}
 
 
 @router.post("/auth/recover")

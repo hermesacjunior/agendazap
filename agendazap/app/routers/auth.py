@@ -15,11 +15,14 @@ from app.services.auth_service import (
     create_access_token_for,
     create_password_reset_token,
     decode_password_reset_token,
+    create_email_verification_token,
+    decode_email_verification_token,
     get_current_user,
     cookie_secure,
 )
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
 from app.services.email_validation import validate_signup_email
+from app.services.email_service import send_account_verification
 from app.security import clean_phone, clean_text, install_template_security, require_csrf_token
 from app import security_guard as guard
 
@@ -27,6 +30,13 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 install_template_security(templates)
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
+APP_URL = os.getenv("APP_URL", "https://www.agendazapuap.com.br").rstrip("/")
+
+
+async def _send_verification_email(user) -> None:
+    token = create_email_verification_token(user)
+    verify_url = f"{APP_URL}/auth/confirm-email?token={token}"
+    await send_account_verification(user.email, user.name, verify_url)
 
 
 def generate_slug(name: str) -> str:
@@ -82,6 +92,15 @@ async def login(
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "error": "Email ou senha inválidos"
+        })
+
+    # Credenciais corretas, mas e-mail ainda nao confirmado: reenvia o link e barra.
+    if not getattr(user, "email_verified", True):
+        guard.clear_login_failures(ip, email)
+        await _send_verification_email(user)
+        return templates.TemplateResponse("auth/login.html", {
+            "request": request,
+            "error": "Confirme seu e-mail para entrar. Enviamos um novo link para sua caixa de entrada.",
         })
 
     guard.clear_login_failures(ip, email)
@@ -144,7 +163,8 @@ async def register(
         email=email,
         hashed_password=get_password_hash(password),
         whatsapp=whatsapp,
-        slug=slug
+        slug=slug,
+        email_verified=False,
     )
     db.add(user)
     await db.flush()
@@ -165,11 +185,48 @@ async def register(
     db.add(schedule)
     await db.commit()
 
-    token = create_access_token_for(user)
+    # Conta nasce nao confirmada: envia o link e nao faz login automatico.
+    await _send_verification_email(user)
+    return templates.TemplateResponse("auth/login.html", {
+        "request": request,
+        "success": f"Conta criada! Enviamos um link de confirmação para {email}. Confirme seu e-mail para entrar.",
+    })
+
+
+@router.get("/confirm-email", response_class=HTMLResponse, name="confirm_email")
+async def confirm_email(request: Request, token: str = "", db: AsyncSession = Depends(get_db)):
+    payload = decode_email_verification_token(token)
+    if not payload:
+        return templates.TemplateResponse("auth/login.html", {
+            "request": request,
+            "error": "Link de confirmação inválido ou expirado. Entre para receber um novo.",
+        })
+
+    result = await db.execute(select(User).where(User.id == payload.get("sub")))
+    user = result.scalar_one_or_none()
+    if not user:
+        return templates.TemplateResponse("auth/login.html", {
+            "request": request,
+            "error": "Conta não encontrada.",
+        })
+
+    if not user.email_verified:
+        user.email_verified = True
+        await db.commit()
+
+    # Conta bloqueada/inativa: confirma mas nao loga.
+    if not user.is_active or getattr(user, "is_blocked", False):
+        return templates.TemplateResponse("auth/login.html", {
+            "request": request,
+            "success": "E-mail confirmado. Faça login para continuar.",
+        })
+
+    # Login automatico apos confirmar (boa UX).
+    auth_token = create_access_token_for(user)
     response = RedirectResponse(url="/admin/dashboard", status_code=302)
     response.set_cookie(
         "access_token",
-        token,
+        auth_token,
         httponly=True,
         secure=cookie_secure(request),
         samesite="lax",

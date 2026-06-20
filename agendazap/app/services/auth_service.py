@@ -91,6 +91,28 @@ def decode_password_reset_token(token: str) -> Optional[dict]:
     return payload
 
 
+def create_email_verification_token(user: User, expires_delta: Optional[timedelta] = None) -> str:
+    """Link de confirmacao de cadastro (validade padrao 24h)."""
+    expire = datetime.utcnow() + (expires_delta or timedelta(hours=24))
+    return jwt.encode(
+        {
+            "sub": user.id,
+            "email": user.email,
+            "purpose": "email_verify",
+            "exp": expire,
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+
+
+def decode_email_verification_token(token: str) -> Optional[dict]:
+    payload = decode_token(token)
+    if not payload or payload.get("purpose") != "email_verify":
+        return None
+    return payload
+
+
 def create_booking_cancel_token(booking_id: str) -> str:
     """Token assinado para o cliente cancelar o proprio agendamento via link."""
     return jwt.encode(
@@ -124,8 +146,13 @@ async def get_current_user(
     if supabase_is_configured() and "Authorization" in request.headers:
         supabase_user = await get_local_user_from_supabase_token(token, db)
         if supabase_user:
-            # Conta desativada ou bloqueada nao mantem sessao valida, mesmo com token ok.
-            if not supabase_user.is_active or getattr(supabase_user, "is_blocked", False):
+            # Conta desativada, bloqueada ou com e-mail nao confirmado nao mantem
+            # sessao valida, mesmo com token ok.
+            if (
+                not supabase_user.is_active
+                or getattr(supabase_user, "is_blocked", False)
+                or not getattr(supabase_user, "email_verified", True)
+            ):
                 return None
             return supabase_user
 
@@ -141,10 +168,10 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if not user:
         return None
-    # Sessao so e valida enquanto a conta estiver ativa e nao bloqueada (revoga
-    # acesso de usuarios desativados/bloqueados pelo super-admin sem esperar o
-    # token expirar).
-    if not user.is_active or getattr(user, "is_blocked", False):
+    # Sessao so e valida enquanto a conta estiver ativa, nao bloqueada e com
+    # e-mail confirmado (revoga acesso de usuarios desativados/bloqueados/nao
+    # confirmados sem esperar o token expirar).
+    if not user.is_active or getattr(user, "is_blocked", False) or not getattr(user, "email_verified", True):
         return None
     # Versao do token: trocar a senha incrementa user.token_version e derruba
     # todas as sessoes antigas. Tokens legados sem "ver" contam como 0.

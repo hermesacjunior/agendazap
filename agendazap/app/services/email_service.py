@@ -54,6 +54,31 @@ async def send_email(to: str, subject: str, html: str) -> bool:
         return False
 
 
+def account_verification_html(name: str, verify_url: str) -> str:
+    safe_name = escape(str(name or ""))
+    safe_url = escape(str(verify_url or ""))
+    return f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1a1a2e;">Confirme seu e-mail</h2>
+        <p>Ola, <strong>{safe_name}</strong>! Falta um passo para ativar sua conta no AgendaZap.</p>
+        <p style="text-align:center; margin: 28px 0;">
+            <a href="{safe_url}" style="background:#5b21b6; color:#fff; text-decoration:none; padding:12px 28px; border-radius:8px; font-weight:600; display:inline-block;">Confirmar meu e-mail</a>
+        </p>
+        <p style="color:#666; font-size:13px;">Se o botao nao funcionar, copie e cole este endereco no navegador:<br>{safe_url}</p>
+        <p style="color:#666; font-size:13px;">O link expira em 24 horas. Se voce nao criou esta conta, ignore este e-mail.</p>
+        <p style="color: #666; font-size: 12px;">AgendaZap - Sistema de Agendamentos</p>
+    </div>
+    """
+
+
+async def send_account_verification(to: str, name: str, verify_url: str) -> bool:
+    return await send_email(
+        to=to,
+        subject="Confirme seu e-mail — AgendaZap",
+        html=account_verification_html(name, verify_url),
+    )
+
+
 def booking_confirmation_html(booking_data: dict, is_admin: bool = False) -> str:
     client_name = _field(booking_data, "client_name")
     client_email = _field(booking_data, "client_email")

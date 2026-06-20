@@ -70,5 +70,6 @@ async def create_tables():
                 "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminder_sent boolean NOT NULL DEFAULT false",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked boolean NOT NULL DEFAULT false",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT true",
             ):
                 await conn.execute(text(ddl))

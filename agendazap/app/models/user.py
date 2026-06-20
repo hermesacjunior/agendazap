@@ -31,6 +31,10 @@ class User(Base):
     # Bloqueio administrativo (ban): impede login e novo cadastro com o mesmo
     # e-mail. Distinto de is_active=False (desativacao temporaria/reversivel).
     is_blocked = Column(Boolean, default=False, nullable=False, server_default="false")
+    # Confirmacao de e-mail: cadastros novos nascem False e so logam apos clicar
+    # no link enviado. server_default=true para nao trancar contas ja existentes
+    # (e outros fluxos de criacao) quando a coluna e adicionada.
+    email_verified = Column(Boolean, default=True, nullable=False, server_default="true")
     is_superadmin = Column(Boolean, default=False, nullable=False)
     # Incrementado ao trocar a senha: invalida todos os JWTs antigos (logout
     # global) e torna o token de reset de uso unico.
