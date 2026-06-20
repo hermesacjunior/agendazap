@@ -1,10 +1,10 @@
-"""Cloudflare Turnstile — captcha anti-bot no cadastro.
+"""Google reCAPTCHA v2 ("Nao sou um robo") — captcha anti-bot no cadastro.
 
 Configuravel por env var. Enquanto as chaves nao estiverem definidas, o captcha
 fica DESLIGADO e o cadastro funciona normalmente (verify_captcha devolve True).
 Para ligar, defina no Railway:
-  TURNSTILE_SITE_KEY    (chave publica, vai no formulario)
-  TURNSTILE_SECRET_KEY  (chave secreta, verificacao no servidor)
+  RECAPTCHA_SITE_KEY    (chave do site, publica, vai no formulario)
+  RECAPTCHA_SECRET_KEY  (chave secreta, verificacao no servidor)
 """
 
 import logging
@@ -16,11 +16,11 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 load_dotenv()
 
-SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "").strip()
-SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "").strip()
-_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
-# Campo que o widget injeta no formulario.
-FORM_FIELD = "cf-turnstile-response"
+SITE_KEY = os.getenv("RECAPTCHA_SITE_KEY", "").strip()
+SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "").strip()
+_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
+# Campo que o widget reCAPTCHA injeta no formulario.
+FORM_FIELD = "g-recaptcha-response"
 
 
 def captcha_enabled() -> bool:
@@ -44,10 +44,10 @@ async def verify_captcha(token: str, remote_ip: str | None = None) -> bool:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(_VERIFY_URL, data=data)
             if resp.status_code != 200:
-                logger.error("Turnstile siteverify status %s", resp.status_code)
+                logger.error("reCAPTCHA siteverify status %s", resp.status_code)
                 return False
             return bool(resp.json().get("success"))
     except Exception as exc:
         # Fail-closed: na duvida, bloqueia (a medida e justamente anti-abuso).
-        logger.error("Erro ao verificar Turnstile: %s", exc)
+        logger.error("Erro ao verificar reCAPTCHA: %s", exc)
         return False

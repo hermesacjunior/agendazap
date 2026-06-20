@@ -7,10 +7,10 @@ BASE="${1:-https://www.agendazapuap.com.br}"
 echo "Alvo: $BASE"
 
 PAGE=$(curl -sk "$BASE/auth/register")
-if echo "$PAGE" | grep -q "cf-turnstile"; then
-  echo "PASS  widget Turnstile presente na pagina de cadastro"
+if echo "$PAGE" | grep -q "g-recaptcha"; then
+  echo "PASS  widget reCAPTCHA presente na pagina de cadastro"
 else
-  echo "FAIL  widget ausente -> TURNSTILE_SITE_KEY/SECRET_KEY ainda nao setados (captcha OFF)."
+  echo "FAIL  widget ausente -> RECAPTCHA_SITE_KEY/SECRET_KEY ainda nao setados (captcha OFF)."
   echo "      Configure as duas variaveis no Railway e rode de novo."
   exit 1
 fi

@@ -134,13 +134,13 @@ async def register(
     password: str = Form(...),
     whatsapp: str = Form(""),
     csrf_token: str = Form(""),
-    cf_turnstile_response: str = Form("", alias="cf-turnstile-response"),
+    g_recaptcha_response: str = Form("", alias="g-recaptcha-response"),
     db: AsyncSession = Depends(get_db)
 ):
     require_csrf_token(request, csrf_token)
 
-    # Captcha anti-bot (so atua se TURNSTILE_* estiver configurado).
-    if not await captcha.verify_captcha(cf_turnstile_response, guard.client_ip(request)):
+    # Captcha anti-bot (so atua se RECAPTCHA_* estiver configurado).
+    if not await captcha.verify_captcha(g_recaptcha_response, guard.client_ip(request)):
         return templates.TemplateResponse("auth/register.html", {
             "request": request,
             "error": "Verificação de segurança falhou. Recarregue a página e tente novamente.",
