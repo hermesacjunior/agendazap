@@ -6,6 +6,9 @@
   <title>Cadastro — AgendaZap</title>
   <link rel="stylesheet" href="/static/css/main.css?v=4">
   <script src="/static/js/forms.js" defer></script>
+  {% if captcha_enabled() %}
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  {% endif %}
 </head>
 <body>
 <div class="auth-page">
@@ -40,6 +43,9 @@
         <label>WhatsApp (opcional, com DDD)</label>
         <input type="tel" name="whatsapp" placeholder="(00) 00000-0000" inputmode="tel" autocomplete="tel" maxlength="16">
       </div>
+      {% if captcha_enabled() %}
+      <div class="cf-turnstile" data-sitekey="{{ captcha_site_key() }}" style="margin: 4px 0 8px"></div>
+      {% endif %}
       <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 8px">
         Criar Conta Grátis
       </button>

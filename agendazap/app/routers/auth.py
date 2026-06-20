@@ -23,12 +23,16 @@ from app.services.auth_service import (
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
 from app.services.email_validation import validate_signup_email
 from app.services.email_service import send_account_verification
+from app.services import captcha
 from app.security import clean_phone, clean_text, install_template_security, require_csrf_token
 from app import security_guard as guard
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 install_template_security(templates)
+# Disponibiliza o estado do captcha para os templates (ex.: register.html).
+templates.env.globals["captcha_enabled"] = captcha.captcha_enabled
+templates.env.globals["captcha_site_key"] = captcha.captcha_site_key
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
 APP_URL = os.getenv("APP_URL", "https://www.agendazapuap.com.br").rstrip("/")
 
@@ -130,9 +134,18 @@ async def register(
     password: str = Form(...),
     whatsapp: str = Form(""),
     csrf_token: str = Form(""),
+    cf_turnstile_response: str = Form("", alias="cf-turnstile-response"),
     db: AsyncSession = Depends(get_db)
 ):
     require_csrf_token(request, csrf_token)
+
+    # Captcha anti-bot (so atua se TURNSTILE_* estiver configurado).
+    if not await captcha.verify_captcha(cf_turnstile_response, guard.client_ip(request)):
+        return templates.TemplateResponse("auth/register.html", {
+            "request": request,
+            "error": "Verificação de segurança falhou. Recarregue a página e tente novamente.",
+        })
+
     name = clean_text(name, max_length=100)
     email = email.strip().lower()
     whatsapp = clean_phone(whatsapp)
