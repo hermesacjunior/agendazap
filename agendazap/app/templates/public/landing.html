@@ -57,6 +57,26 @@
     .lp-card h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 8px; font-weight: 700; }
     .lp-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0; }
 
+    /* SPLIT (editorial, quebra a simetria de grade) */
+    .lp-split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 52px; align-items: center; }
+    .lp-split + .lp-split { margin-top: 64px; }
+    .lp-kicker { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-soft); margin-bottom: 12px; }
+    .lp-split-text h2 { font-family: var(--font-display); font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 16px; }
+    .lp-split-text p { color: var(--text-muted); font-size: 16px; line-height: 1.7; margin: 0 0 14px; }
+    .lp-split-text ul { list-style: none; padding: 0; margin: 18px 0 0; }
+    .lp-split-text li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; font-size: 15px; color: var(--text); }
+    .lp-split-text li .ck { color: var(--wa); font-weight: 700; flex-shrink: 0; }
+    .lp-split.rev .lp-split-media { order: -1; }
+
+    /* coluna de horarios (visual de bloqueio) */
+    .lp-day { background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card)); border: 1px solid var(--border); border-radius: 18px; padding: 20px; max-width: 320px; margin: 0 auto; }
+    .lp-day-head { font-weight: 700; font-size: 14px; margin-bottom: 14px; }
+    .slot { font-size: 13.5px; padding: 11px 13px; border-radius: 10px; margin-bottom: 9px; border: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; }
+    .slot:last-child { margin-bottom: 0; }
+    .slot.free { color: var(--text-muted); }
+    .slot.taken { background: rgba(91,106,248,0.12); border-color: var(--accent); color: var(--text); }
+    .slot.blocked { background: rgba(255,255,255,0.025); color: var(--text-dim); border-style: dashed; }
+
     /* STEPS */
     .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: step; }
     .lp-step { text-align: center; padding: 10px; }
@@ -94,6 +114,10 @@
       .lp-hero-grid { grid-template-columns: 1fr; gap: 36px; }
       h1.lp-title { font-size: 36px; }
       .lp-grid3, .lp-steps, .lp-plans { grid-template-columns: 1fr; }
+      .lp-split { grid-template-columns: 1fr; gap: 28px; }
+      .lp-split + .lp-split { margin-top: 44px; }
+      .lp-split.rev .lp-split-media { order: 0; }
+      .lp-split-text h2 { font-size: 26px; }
       .lp-nav-actions a.link.hide-sm { display: none; }
       .lp-footer-inner { flex-direction: column; text-align: center; }
       .lp-footer a { margin: 0 9px; }
@@ -126,7 +150,7 @@
           <a href="/auth/register" class="btn btn-primary btn-lg">Começar grátis</a>
           <a href="#planos" class="btn btn-secondary btn-lg">Ver planos</a>
         </div>
-        <p class="lp-note">✓ Grátis para começar · ✓ Sem cartão de crédito · ✓ Pronto em 2 minutos</p>
+        <p class="lp-note">Feito para quem trabalha com hora marcada — barbearia, salão, estética, consultório, autônomos.</p>
       </div>
 
       <!-- mockup WhatsApp -->
@@ -163,38 +187,101 @@
   <!-- BENEFITS / FEATURES -->
   <section class="lp-section" id="recursos">
     <div class="lp">
-      <h2 class="lp-h2">Tudo para nunca mais perder um horário</h2>
-      <p class="lp-lead">Do agendamento ao lembrete, o AgendaZap cuida da comunicação com o cliente para você focar no atendimento.</p>
+      <h2 class="lp-h2">O trabalho chato fica com a gente</h2>
+      <p class="lp-lead">Confirmar horário, lembrar o cliente, anotar quem vem amanhã. O AgendaZap faz isso no automático — você só atende.</p>
       <div class="lp-grid3">
         <div class="lp-card">
           <div class="lp-ico">🔗</div>
           <h3>Seu link de agendamento</h3>
-          <p>Cada conta ganha um link próprio. O cliente escolhe o horário disponível e marca sozinho, a qualquer hora.</p>
+          <p>Coloque na bio do Instagram ou mande no WhatsApp. O cliente abre, vê seus horários livres e marca sozinho — de madrugada, no fim de semana, na hora que der.</p>
         </div>
         <div class="lp-card">
           <div class="lp-ico">💬</div>
-          <h3>Avisos no WhatsApp</h3>
-          <p>Receba cada novo agendamento direto no seu WhatsApp e envie confirmações automáticas ao cliente.</p>
+          <h3>Aviso na hora, no WhatsApp</h3>
+          <p>Marcou? Você recebe na mesma hora com nome, telefone e horário do cliente. E ele recebe a confirmação automática, sem você digitar nada.</p>
         </div>
         <div class="lp-card">
           <div class="lp-ico">⏰</div>
-          <h3>Lembretes automáticos</h3>
-          <p>O cliente recebe um lembrete antes do horário. Menos faltas, mais agenda cheia.</p>
+          <h3>Lembrete antes do horário</h3>
+          <p>O cliente é avisado pouco antes do compromisso. Aquele “esqueci” que vira buraco na agenda acontece bem menos.</p>
+        </div>
+        <div class="lp-card">
+          <div class="lp-ico">☀️</div>
+          <h3>Resumo do seu dia, todo dia</h3>
+          <p>Toda manhã, no horário que você escolher, chega a lista de quem vem hoje — no WhatsApp, no e-mail, ou nos dois.</p>
+        </div>
+        <div class="lp-card">
+          <div class="lp-ico">🔒</div>
+          <h3>Bloqueie folga e almoço</h3>
+          <p>Marque folga, almoço, feriado ou um horário pessoal e ninguém consegue agendar ali. Sua agenda do seu jeito.</p>
         </div>
         <div class="lp-card">
           <div class="lp-ico">🗂️</div>
-          <h3>Múltiplas agendas</h3>
-          <p>Separe pessoal, trabalho e equipe. Bloqueie datas e horários específicos quando precisar.</p>
+          <h3>Mais de uma agenda</h3>
+          <p>Pessoal, trabalho, um segundo serviço... separe tudo em agendas diferentes e gerencie num lugar só.</p>
         </div>
-        <div class="lp-card">
-          <div class="lp-ico">📊</div>
-          <h3>Painel completo</h3>
-          <p>Veja seus compromissos do dia, histórico de clientes e um resumo diário direto no seu canal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESUMO DO DIA (editorial) -->
+  <section class="lp-section alt">
+    <div class="lp lp-split">
+      <div class="lp-split-text">
+        <div class="lp-kicker">Resumo automático</div>
+        <h2>Acorde já sabendo como vai ser o dia</h2>
+        <p>Antes de pegar a chave do salão, seu celular já tem a agenda do dia. O AgendaZap junta todos os compromissos confirmados e te manda um resumo no horário que você definir — sem abrir o sistema, sem conferir planilha.</p>
+        <ul>
+          <li><span class="ck">✓</span> No WhatsApp, no e-mail ou nos dois — você escolhe.</li>
+          <li><span class="ck">✓</span> No horário que faz sentido pra você (7h, 8h, o que preferir).</li>
+          <li><span class="ck">✓</span> Cada cliente com horário e nome, na ordem do dia.</li>
+        </ul>
+      </div>
+      <div class="lp-split-media">
+        <div class="lp-phone">
+          <div class="lp-phone-bar">
+            <div class="lp-wa-ava">📍</div>
+            <div>
+              <div style="font-weight:700; font-size:14px">Minha Agenda</div>
+              <div style="font-size:11px; color:var(--text-dim)">Resumo do dia · 07:00</div>
+            </div>
+          </div>
+          <div class="lp-bubble green">
+            <strong>📅 Resumo do dia 22/06</strong><br><br>
+            Você tem 4 compromissos:<br>
+            ⏰ <strong>09:00</strong> — Pedro<br>
+            ⏰ <strong>10:30</strong> — Maria<br>
+            ⏰ <strong>14:00</strong> — João · Corte + Barba<br>
+            ⏰ <strong>16:30</strong> — Ana<br><br>
+            <em>AgendaZap</em>
+            <span class="time">07:00 ✓✓</span>
+          </div>
         </div>
-        <div class="lp-card">
-          <div class="lp-ico">📧</div>
-          <h3>E-mail também</h3>
-          <p>Confirmações e cancelamentos por e-mail para você e para o cliente, sem esforço.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOQUEIO DE HORARIOS (editorial, invertido) -->
+  <section class="lp-section">
+    <div class="lp lp-split rev">
+      <div class="lp-split-text">
+        <div class="lp-kicker">Controle da agenda</div>
+        <h2>Você decide quando está disponível</h2>
+        <p>Folga na sexta? Almoço sagrado das 12h às 13h? Aquele horário que é só seu? Bloqueie e pronto — o cliente nem enxerga esses momentos na hora de marcar. Nada de receber agendamento quando você não pode atender.</p>
+        <ul>
+          <li><span class="ck">✓</span> Bloqueie um dia inteiro (folga, feriado, viagem).</li>
+          <li><span class="ck">✓</span> Ou só uma faixa de horário (almoço, intervalo).</li>
+          <li><span class="ck">✓</span> Ajuste seus horários de atendimento por dia da semana.</li>
+        </ul>
+      </div>
+      <div class="lp-split-media">
+        <div class="lp-day">
+          <div class="lp-day-head">Terça-feira · 22/06</div>
+          <div class="slot taken"><span>09:00 · Pedro</span><span>✂️</span></div>
+          <div class="slot free"><span>10:30 · Disponível</span><span>+</span></div>
+          <div class="slot blocked"><span>12:00–13:00 · Almoço</span><span>🔒</span></div>
+          <div class="slot free"><span>14:00 · Disponível</span><span>+</span></div>
+          <div class="slot blocked"><span>Sexta 25/06 · Folga</span><span>🔒</span></div>
         </div>
       </div>
     </div>
