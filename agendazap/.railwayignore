@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
+.vercel/
+node_modules/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
