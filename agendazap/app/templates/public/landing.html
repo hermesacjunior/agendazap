@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgendaZap — Agendamentos automáticos com avisos no WhatsApp</title>
+  <meta name="description" content="Receba agendamentos pelo seu link e avise clientes no WhatsApp automaticamente. Lembretes, confirmações e um painel completo. Comece grátis.">
+  <link rel="stylesheet" href="/static/css/main.css?v=4">
+  <style>
+    :root { --wa: #25d366; --wa-dark: #128c7e; }
+    body { background: var(--bg); color: var(--text); }
+    .lp { max-width: 1120px; margin: 0 auto; padding: 0 var(--space-5); }
+    a.plain { text-decoration: none; }
+
+    /* NAV */
+    .lp-nav { position: sticky; top: 0; z-index: 50; background: rgba(10,10,15,0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .lp-nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .lp-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 19px; color: var(--text); text-decoration: none; }
+    .lp-logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), #7c3aed); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 14px; }
+    .lp-nav-actions { display: flex; align-items: center; gap: 12px; }
+    .lp-nav-actions a.link { color: var(--text-muted); text-decoration: none; font-size: 14px; }
+    .lp-nav-actions a.link:hover { color: var(--text); }
+
+    /* HERO */
+    .lp-hero { position: relative; overflow: hidden; padding: 72px 0 56px; }
+    .lp-hero::before { content: ""; position: absolute; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 500px; background: radial-gradient(ellipse at center, var(--accent-glow), transparent 70%); pointer-events: none; }
+    .lp-hero-grid { position: relative; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+    .lp-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-full); font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .lp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--wa); box-shadow: 0 0 10px var(--wa); }
+    h1.lp-title { font-family: var(--font-display); font-size: 46px; line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 18px; }
+    h1.lp-title .hl { color: var(--accent-soft); }
+    h1.lp-title .wa { color: var(--wa); }
+    .lp-sub { font-size: 18px; color: var(--text-muted); line-height: 1.6; margin-bottom: 28px; max-width: 540px; }
+    .lp-cta-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .lp-note { font-size: 13px; color: var(--text-dim); margin-top: 14px; }
+
+    /* CHAT MOCKUP */
+    .lp-phone { background: linear-gradient(180deg, #0e1512, #0a0f0d); border: 1px solid var(--border); border-radius: 22px; padding: 18px; box-shadow: var(--shadow-lg, 0 30px 60px rgba(0,0,0,0.5)); }
+    .lp-phone-bar { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 14px; }
+    .lp-wa-ava { width: 36px; height: 36px; border-radius: 50%; background: var(--wa); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .lp-bubble { background: #075e54; color: #e9ffe9; border-radius: 12px 12px 12px 4px; padding: 12px 14px; font-size: 13.5px; line-height: 1.5; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+    .lp-bubble.green { background: #128c7e; }
+    .lp-bubble.lime { background: #1f8a4c; }
+    .lp-bubble strong { color: #fff; }
+    .lp-bubble .time { display: block; text-align: right; font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+
+    /* SECTIONS */
+    .lp-section { padding: 64px 0; }
+    .lp-section.alt { background: linear-gradient(180deg, transparent, rgba(91,106,248,0.03), transparent); }
+    .lp-h2 { font-family: var(--font-display); font-size: 32px; font-weight: 800; letter-spacing: -0.02em; text-align: center; margin: 0 0 10px; }
+    .lp-lead { text-align: center; color: var(--text-muted); font-size: 16px; max-width: 600px; margin: 0 auto 44px; line-height: 1.6; }
+
+    .lp-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .lp-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 22px; transition: border-color .2s, transform .2s; }
+    .lp-card:hover { border-color: var(--border-strong); transform: translateY(-3px); }
+    .lp-ico { width: 46px; height: 46px; border-radius: 12px; background: var(--accent-glow); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; }
+    .lp-card h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 8px; font-weight: 700; }
+    .lp-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0; }
+
+    /* STEPS */
+    .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: step; }
+    .lp-step { text-align: center; padding: 10px; }
+    .lp-step-num { width: 48px; height: 48px; margin: 0 auto 16px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px var(--accent-glow); }
+    .lp-step h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 6px; }
+    .lp-step p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0; }
+
+    /* PLANS */
+    .lp-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+    .lp-plan { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 24px; display: flex; flex-direction: column; }
+    .lp-plan.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 20px 50px var(--accent-glow); position: relative; }
+    .lp-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: var(--radius-full); }
+    .lp-plan-name { font-family: var(--font-display); font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .lp-price { font-family: var(--font-display); font-size: 38px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .lp-price span { font-size: 15px; font-weight: 500; color: var(--text-muted); }
+    .lp-feats { list-style: none; padding: 0; margin: 20px 0 24px; flex: 1; }
+    .lp-feats li { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; color: var(--text); padding: 6px 0; line-height: 1.45; }
+    .lp-feats li .ck { color: var(--wa); flex-shrink: 0; font-weight: 700; }
+    .lp-feats li.off { color: var(--text-dim); text-decoration: line-through; }
+    .lp-feats li.off .ck { color: var(--text-dim); }
+    .lp-feats li.star { color: var(--accent-soft); font-weight: 600; }
+
+    /* FINAL CTA */
+    .lp-final { text-align: center; padding: 72px 0; background: radial-gradient(ellipse at center, var(--accent-glow), transparent 70%); }
+    .lp-final h2 { font-family: var(--font-display); font-size: 34px; font-weight: 800; margin: 0 0 14px; letter-spacing: -0.02em; }
+    .lp-final p { color: var(--text-muted); font-size: 17px; margin: 0 0 28px; }
+
+    /* FOOTER */
+    .lp-footer { border-top: 1px solid var(--border); padding: 32px 0; }
+    .lp-footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; color: var(--text-dim); font-size: 13px; }
+    .lp-footer a { color: var(--text-muted); text-decoration: none; margin-left: 18px; }
+    .lp-footer a:hover { color: var(--text); }
+
+    @media (max-width: 860px) {
+      .lp-hero-grid { grid-template-columns: 1fr; gap: 36px; }
+      h1.lp-title { font-size: 36px; }
+      .lp-grid3, .lp-steps, .lp-plans { grid-template-columns: 1fr; }
+      .lp-nav-actions a.link.hide-sm { display: none; }
+      .lp-footer-inner { flex-direction: column; text-align: center; }
+      .lp-footer a { margin: 0 9px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <nav class="lp-nav">
+    <div class="lp lp-nav-inner">
+      <a href="/" class="lp-brand"><span class="lp-logo">AZ</span> AgendaZap</a>
+      <div class="lp-nav-actions">
+        {% if logged_in %}
+        <a href="/admin/dashboard" class="btn btn-primary btn-sm">Acessar painel</a>
+        {% else %}
+        <a href="/auth/login" class="link hide-sm">Entrar</a>
+        <a href="/auth/register" class="btn btn-primary btn-sm">Criar conta grátis</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="lp-hero">
+    <div class="lp lp-hero-grid">
+      <div>
+        <span class="lp-eyebrow"><span class="lp-dot"></span> Agendamento online com WhatsApp</span>
+        <h1 class="lp-title">Sua agenda no automático, com avisos no <span class="wa">WhatsApp</span></h1>
+        <p class="lp-sub">Compartilhe seu link, deixe que os clientes marquem sozinhos e receba a confirmação na hora. Lembretes e avisos automáticos — sem planilha, sem mensagem manual.</p>
+        <div class="lp-cta-row">
+          <a href="/auth/register" class="btn btn-primary btn-lg">Começar grátis</a>
+          <a href="#planos" class="btn btn-secondary btn-lg">Ver planos</a>
+        </div>
+        <p class="lp-note">✓ Grátis para começar · ✓ Sem cartão de crédito · ✓ Pronto em 2 minutos</p>
+      </div>
+
+      <!-- mockup WhatsApp -->
+      <div class="lp-phone">
+        <div class="lp-phone-bar">
+          <div class="lp-wa-ava">📍</div>
+          <div>
+            <div style="font-weight:700; font-size:14px">Minha Agenda</div>
+            <div style="font-size:11px; color:var(--text-dim)">Mensagens para você</div>
+          </div>
+        </div>
+        <div class="lp-bubble">
+          <strong>📅 Novo Agendamento!</strong><br>
+          👤 Cliente: Pedro<br>
+          📱 WhatsApp: (63) 99230-7059<br>
+          🗓️ Data: 22/06/2026 · ⏰ 09:00<br>
+          <em>AgendaZap ✅</em>
+          <span class="time">08:30 ✓✓</span>
+        </div>
+        <div class="lp-bubble lime">
+          <strong>✅ Agendamento confirmado!</strong><br>
+          Quinta, 14h00 — Corte + Barba
+          <span class="time">08:31 ✓✓</span>
+        </div>
+        <div class="lp-bubble green">
+          <strong>⏰ Lembrete</strong><br>
+          Seu horário é em 1 hora
+          <span class="time">13:00 ✓✓</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- BENEFITS / FEATURES -->
+  <section class="lp-section" id="recursos">
+    <div class="lp">
+      <h2 class="lp-h2">Tudo para nunca mais perder um horário</h2>
+      <p class="lp-lead">Do agendamento ao lembrete, o AgendaZap cuida da comunicação com o cliente para você focar no atendimento.</p>
+      <div class="lp-grid3">
+        <div class="lp-card">
+          <div class="lp-ico">🔗</div>
+          <h3>Seu link de agendamento</h3>
+          <p>Cada conta ganha um link próprio. O cliente escolhe o horário disponível e marca sozinho, a qualquer hora.</p>
+        </div>
+        <div class="lp-card">
+          <div class="lp-ico">💬</div>
+          <h3>Avisos no WhatsApp</h3>
+          <p>Receba cada novo agendamento direto no seu WhatsApp e envie confirmações automáticas ao cliente.</p>
+        </div>
+        <div class="lp-card">
+          <div class="lp-ico">⏰</div>
+          <h3>Lembretes automáticos</h3>
+          <p>O cliente recebe um lembrete antes do horário. Menos faltas, mais agenda cheia.</p>
+        </div>
+        <div class="lp-card">
+          <div class="lp-ico">🗂️</div>
+          <h3>Múltiplas agendas</h3>
+          <p>Separe pessoal, trabalho e equipe. Bloqueie datas e horários específicos quando precisar.</p>
+        </div>
+        <div class="lp-card">
+          <div class="lp-ico">📊</div>
+          <h3>Painel completo</h3>
+          <p>Veja seus compromissos do dia, histórico de clientes e um resumo diário direto no seu canal.</p>
+        </div>
+        <div class="lp-card">
+          <div class="lp-ico">📧</div>
+          <h3>E-mail também</h3>
+          <p>Confirmações e cancelamentos por e-mail para você e para o cliente, sem esforço.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="lp-section alt" id="como-funciona">
+    <div class="lp">
+      <h2 class="lp-h2">Como funciona</h2>
+      <p class="lp-lead">Em três passos você já está recebendo agendamentos.</p>
+      <div class="lp-steps">
+        <div class="lp-step">
+          <div class="lp-step-num">1</div>
+          <h3>Crie sua conta grátis</h3>
+          <p>Cadastre-se em 2 minutos e configure seus horários de atendimento.</p>
+        </div>
+        <div class="lp-step">
+          <div class="lp-step-num">2</div>
+          <h3>Compartilhe seu link</h3>
+          <p>Coloque na bio do Instagram, no WhatsApp ou onde seus clientes estiverem.</p>
+        </div>
+        <div class="lp-step">
+          <div class="lp-step-num">3</div>
+          <h3>Receba e seja avisado</h3>
+          <p>Os clientes marcam sozinhos e você recebe o aviso na hora. Simples assim.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANS -->
+  <section class="lp-section" id="planos">
+    <div class="lp">
+      <h2 class="lp-h2">Planos para todo tamanho de negócio</h2>
+      <p class="lp-lead">Comece de graça e evolua quando quiser. Cancele a qualquer momento.</p>
+      <div class="lp-plans">
+        <!-- Free -->
+        <div class="lp-plan">
+          <div class="lp-plan-name">Free</div>
+          <div class="lp-price">R$ 0 <span>/mês</span></div>
+          <ul class="lp-feats">
+            <li><span class="ck">✓</span> 1 agendamento grátis</li>
+            <li><span class="ck">✓</span> Notificação por e-mail</li>
+            <li><span class="ck">✓</span> 1 agenda</li>
+            <li class="off"><span class="ck">✓</span> Notificação WhatsApp</li>
+          </ul>
+          <a href="/auth/register" class="btn btn-secondary btn-full">Começar grátis</a>
+        </div>
+        <!-- Basic -->
+        <div class="lp-plan">
+          <div class="lp-plan-name">Basic</div>
+          <div class="lp-price">R$ 49 <span>/mês</span></div>
+          <ul class="lp-feats">
+            <li><span class="ck">✓</span> 100 agendamentos por mês</li>
+            <li><span class="ck">✓</span> Notificação por e-mail</li>
+            <li><span class="ck">✓</span> Link personalizado</li>
+            <li><span class="ck">✓</span> 1 agenda</li>
+            <li class="off"><span class="ck">✓</span> Notificação WhatsApp</li>
+          </ul>
+          <a href="/auth/register" class="btn btn-secondary btn-full">Assinar Basic</a>
+        </div>
+        <!-- Pro -->
+        <div class="lp-plan featured">
+          <span class="lp-badge">Mais popular</span>
+          <div class="lp-plan-name">Pro</div>
+          <div class="lp-price">R$ 99 <span>/mês</span></div>
+          <ul class="lp-feats">
+            <li class="star"><span class="ck">★</span> Notificação no WhatsApp</li>
+            <li><span class="ck">✓</span> Agendamentos ilimitados</li>
+            <li><span class="ck">✓</span> Múltiplas agendas</li>
+            <li><span class="ck">✓</span> Lembrete automático ao cliente</li>
+            <li><span class="ck">✓</span> Resumo diário do seu dia</li>
+            <li><span class="ck">✓</span> Bloquear datas e horários</li>
+            <li><span class="ck">✓</span> Compartilhar agenda (link de visualização)</li>
+            <li><span class="ck">✓</span> Suporte prioritário</li>
+          </ul>
+          <a href="/auth/register" class="btn btn-primary btn-full">Assinar Pro</a>
+        </div>
+      </div>
+      <p class="text-center text-sm text-muted" style="margin-top: var(--space-8)">Pagamentos processados com segurança via Stripe · Cancele quando quiser</p>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="lp-final">
+    <div class="lp">
+      <h2>Pronto para lotar sua agenda?</h2>
+      <p>Crie sua conta grátis e comece a receber agendamentos hoje mesmo.</p>
+      <a href="/auth/register" class="btn btn-primary btn-lg">Criar conta grátis</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="lp-footer">
+    <div class="lp lp-footer-inner">
+      <div class="lp-brand" style="font-size:16px"><span class="lp-logo" style="width:28px;height:28px;font-size:12px">AZ</span> AgendaZap</div>
+      <div>
+        <a href="/auth/login">Entrar</a>
+        <a href="/auth/register">Criar conta</a>
+        <a href="#planos">Planos</a>
+      </div>
+      <div>© 2026 AgendaZap · Agendamentos com WhatsApp</div>
+    </div>
+  </footer>
+</body>
+</html>

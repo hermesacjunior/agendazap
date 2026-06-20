@@ -1,9 +1,9 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 from time import time
@@ -16,7 +16,8 @@ from dotenv import load_dotenv
 
 from app.database import create_tables
 from app.routers import auth, admin, booking, webhooks, plans, api, superadmin, share
-from app.security import is_allowed_origin, set_csrf_cookie, validate_csrf
+from app.security import is_allowed_origin, set_csrf_cookie, validate_csrf, install_template_security
+from app.services.auth_service import get_current_user
 from app import security_guard as guard
 
 load_dotenv()
@@ -205,6 +206,9 @@ async def security_middleware(request: Request, call_next):
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+templates = Jinja2Templates(directory="app/templates")
+install_template_security(templates)
+
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(superadmin.router, prefix="/admin/super", tags=["superadmin"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
@@ -231,10 +235,12 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse({"detail": "Erro interno do servidor."}, status_code=500)
 
 
-@app.get("/")
-async def root(request: Request):
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/auth/login")
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request, current_user=Depends(get_current_user)):
+    return templates.TemplateResponse(
+        "public/landing.html",
+        {"request": request, "logged_in": current_user is not None},
+    )
 
 
 @app.get("/sw.js", include_in_schema=False)
