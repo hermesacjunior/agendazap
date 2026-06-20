@@ -134,6 +134,41 @@ async def toggle_active(
     return RedirectResponse(url=f"/admin/super/users/{user_id}", status_code=302)
 
 
+@router.post("/users/{user_id}/blocked")
+async def toggle_blocked(
+    user_id: str,
+    request: Request,
+    csrf_token: str = Form(""),
+    current_user: User = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+):
+    require_csrf_token(request, csrf_token)
+    target = await _load_user(db, user_id)
+    if target.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Voce nao pode bloquear a propria conta.")
+    target.is_blocked = not bool(target.is_blocked)
+    await db.commit()
+    return RedirectResponse(url=f"/admin/super/users/{user_id}", status_code=302)
+
+
+@router.post("/users/{user_id}/delete")
+async def delete_user(
+    user_id: str,
+    request: Request,
+    csrf_token: str = Form(""),
+    current_user: User = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+):
+    require_csrf_token(request, csrf_token)
+    target = await _load_user(db, user_id)
+    if target.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Voce nao pode excluir a propria conta.")
+    # Agendas e agendamentos somem em cascata (cascade="all, delete-orphan").
+    await db.delete(target)
+    await db.commit()
+    return RedirectResponse(url="/admin/super", status_code=302)
+
+
 @router.post("/users/{user_id}/superadmin")
 async def toggle_superadmin(
     user_id: str,

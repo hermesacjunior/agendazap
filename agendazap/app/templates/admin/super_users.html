@@ -56,10 +56,12 @@
             </form>
           </td>
           <td data-label="Status">
-            {% if u.is_active %}
+            {% if u.is_blocked %}
+            <span class="badge badge-red">Bloqueado</span>
+            {% elif u.is_active %}
             <span class="badge badge-green">Ativo</span>
             {% else %}
-            <span class="badge badge-red">Inativo</span>
+            <span class="badge badge-yellow">Inativo</span>
             {% endif %}
           </td>
           <td data-label="Agendamentos">{{ booking_counts.get(u.id, 0) }}</td>

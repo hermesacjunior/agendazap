@@ -28,6 +28,9 @@ class User(Base):
     # respeita a CSP (img-src 'self' data:). Aparece na agenda publica.
     avatar = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
+    # Bloqueio administrativo (ban): impede login e novo cadastro com o mesmo
+    # e-mail. Distinto de is_active=False (desativacao temporaria/reversivel).
+    is_blocked = Column(Boolean, default=False, nullable=False, server_default="false")
     is_superadmin = Column(Boolean, default=False, nullable=False)
     # Incrementado ao trocar a senha: invalida todos os JWTs antigos (logout
     # global) e torna o token de reset de uso unico.

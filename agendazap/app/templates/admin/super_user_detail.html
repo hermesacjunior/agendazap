@@ -15,7 +15,10 @@
     <h3 class="card-title">Conta</h3>
     <p class="text-sm text-muted">Slug público: <strong>/b/{{ target.slug }}</strong></p>
     <p class="text-sm text-muted">Agendas: <strong>{{ schedules_count }}</strong></p>
-    <p class="text-sm text-muted">Status: {% if target.is_active %}<span class="badge badge-green">Ativo</span>{% else %}<span class="badge badge-red">Inativo</span>{% endif %}</p>
+    <p class="text-sm text-muted">Status:
+      {% if target.is_blocked %}<span class="badge badge-red">Bloqueado</span>
+      {% elif target.is_active %}<span class="badge badge-green">Ativo</span>
+      {% else %}<span class="badge badge-yellow">Inativo</span>{% endif %}</p>
     <p class="text-sm text-muted">Super-admin: {% if target.is_superadmin %}<span class="badge badge-accent">sim</span>{% else %}não{% endif %}</p>
     <p class="text-sm text-muted">Stripe customer: <strong>{{ target.stripe_customer_id or '—' }}</strong></p>
 
@@ -35,12 +38,22 @@
     <div style="display:flex; gap:8px; flex-wrap:wrap">
       <form method="POST" action="/admin/super/users/{{ target.id }}/active">
         <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-        <button type="submit" class="btn btn-secondary btn-sm">{% if target.is_active %}Desativar conta{% else %}Reativar conta{% endif %}</button>
+        <button type="submit" class="btn btn-secondary btn-sm">{% if target.is_active %}Desativar conta{% else %}Ativar conta{% endif %}</button>
+      </form>
+      <form method="POST" action="/admin/super/users/{{ target.id }}/blocked"
+        onsubmit="return confirm({% if target.is_blocked %}'Desbloquear esta conta?'{% else %}'Bloquear esta conta? O usuário não poderá acessar o sistema.'{% endif %})">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <button type="submit" class="btn btn-secondary btn-sm">{% if target.is_blocked %}Desbloquear conta{% else %}Bloquear conta{% endif %}</button>
       </form>
       <form method="POST" action="/admin/super/users/{{ target.id }}/superadmin"
         onsubmit="return confirm('Confirmar alteração de acesso de administrador?')">
         <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
         <button type="submit" class="btn btn-secondary btn-sm">{% if target.is_superadmin %}Revogar super-admin{% else %}Tornar super-admin{% endif %}</button>
+      </form>
+      <form method="POST" action="/admin/super/users/{{ target.id }}/delete"
+        onsubmit="return confirm('Excluir DEFINITIVAMENTE este usuário, suas agendas e agendamentos? Esta ação não pode ser desfeita.')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <button type="submit" class="btn btn-danger btn-sm">Excluir conta</button>
       </form>
     </div>
   </div>

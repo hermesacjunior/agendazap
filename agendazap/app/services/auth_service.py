@@ -124,8 +124,10 @@ async def get_current_user(
     if supabase_is_configured() and "Authorization" in request.headers:
         supabase_user = await get_local_user_from_supabase_token(token, db)
         if supabase_user:
-            # Conta desativada nao deve manter sessao valida, mesmo com token ok.
-            return supabase_user if supabase_user.is_active else None
+            # Conta desativada ou bloqueada nao mantem sessao valida, mesmo com token ok.
+            if not supabase_user.is_active or getattr(supabase_user, "is_blocked", False):
+                return None
+            return supabase_user
 
     payload = decode_token(token)
     if not payload:
@@ -139,9 +141,10 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if not user:
         return None
-    # Sessao so e valida enquanto a conta estiver ativa (revoga acesso de
-    # usuarios desativados pelo super-admin sem esperar o token expirar).
-    if not user.is_active:
+    # Sessao so e valida enquanto a conta estiver ativa e nao bloqueada (revoga
+    # acesso de usuarios desativados/bloqueados pelo super-admin sem esperar o
+    # token expirar).
+    if not user.is_active or getattr(user, "is_blocked", False):
         return None
     # Versao do token: trocar a senha incrementa user.token_version e derruba
     # todas as sessoes antigas. Tokens legados sem "ver" contam como 0.

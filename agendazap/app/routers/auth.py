@@ -19,6 +19,7 @@ from app.services.auth_service import (
     cookie_secure,
 )
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
+from app.services.email_validation import validate_signup_email
 from app.security import clean_phone, clean_text, install_template_security, require_csrf_token
 
 router = APIRouter()
@@ -57,7 +58,13 @@ async def login(
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
-    if not user or not user.is_active or not verify_password(password, user.hashed_password):
+    if user and getattr(user, "is_blocked", False) and verify_password(password, user.hashed_password):
+        return templates.TemplateResponse("auth/login.html", {
+            "request": request,
+            "error": "Esta conta foi bloqueada. Entre em contato com o suporte."
+        })
+
+    if not user or not user.is_active or getattr(user, "is_blocked", False) or not verify_password(password, user.hashed_password):
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "error": "Email ou senha inválidos"
@@ -100,6 +107,13 @@ async def register(
         return templates.TemplateResponse("auth/register.html", {
             "request": request,
             "error": "A senha deve ter pelo menos 8 caracteres"
+        })
+
+    email_ok, email_error = validate_signup_email(email)
+    if not email_ok:
+        return templates.TemplateResponse("auth/register.html", {
+            "request": request,
+            "error": email_error,
         })
 
     result = await db.execute(select(User).where(User.email == email))
