@@ -66,7 +66,27 @@
           </td>
           <td data-label="Agendamentos">{{ booking_counts.get(u.id, 0) }}</td>
           <td data-label="Criado em" style="font-size: var(--text-sm); color: var(--text-muted)">{{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}</td>
-          <td data-label="Ações"><a href="/admin/super/users/{{ u.id }}" class="btn btn-secondary btn-sm">Ver histórico</a></td>
+          <td data-label="Ações">
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center">
+              <a href="/admin/super/users/{{ u.id }}" class="btn btn-secondary btn-sm">Ver</a>
+              {% if u.id != user.id %}
+              <form method="POST" action="/admin/super/users/{{ u.id }}/active" style="margin:0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button type="submit" class="btn btn-secondary btn-sm">{% if u.is_active %}Desativar{% else %}Ativar{% endif %}</button>
+              </form>
+              <form method="POST" action="/admin/super/users/{{ u.id }}/blocked" style="margin:0"
+                onsubmit="return confirm({% if u.is_blocked %}'Desbloquear esta conta?'{% else %}'Bloquear esta conta? O usuário não poderá acessar o sistema.'{% endif %})">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button type="submit" class="btn btn-secondary btn-sm">{% if u.is_blocked %}Desbloquear{% else %}Bloquear{% endif %}</button>
+              </form>
+              <form method="POST" action="/admin/super/users/{{ u.id }}/delete" style="margin:0"
+                onsubmit="return confirm('Excluir DEFINITIVAMENTE {{ u.name }}, suas agendas e agendamentos? Esta ação não pode ser desfeita.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
