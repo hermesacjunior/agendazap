@@ -21,6 +21,7 @@ from app.services.auth_service import (
 from app.services.supabase_auth import send_password_recovery, supabase_is_configured
 from app.services.email_validation import validate_signup_email
 from app.security import clean_phone, clean_text, install_template_security, require_csrf_token
+from app import security_guard as guard
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -55,6 +56,18 @@ async def login(
 ):
     require_csrf_token(request, csrf_token)
     email = email.strip().lower()
+    ip = guard.client_ip(request)
+
+    # Trava de forca-bruta: apos varias falhas para esta conta+IP, bloqueia por
+    # um tempo (independe de o e-mail existir, para nao vazar contas validas).
+    block_ttl = guard.login_block_ttl(ip, email)
+    if block_ttl is not None:
+        minutos = max(1, block_ttl // 60)
+        return templates.TemplateResponse("auth/login.html", {
+            "request": request,
+            "error": f"Muitas tentativas de login. Aguarde {minutos} min e tente novamente.",
+        })
+
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
@@ -65,11 +78,13 @@ async def login(
         })
 
     if not user or not user.is_active or getattr(user, "is_blocked", False) or not verify_password(password, user.hashed_password):
+        guard.record_login_failure(ip, email)
         return templates.TemplateResponse("auth/login.html", {
             "request": request,
             "error": "Email ou senha inválidos"
         })
 
+    guard.clear_login_failures(ip, email)
     token = create_access_token_for(user)
     response = RedirectResponse(url="/admin/dashboard", status_code=302)
     response.set_cookie(

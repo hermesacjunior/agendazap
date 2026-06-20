@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from app.database import create_tables
 from app.routers import auth, admin, booking, webhooks, plans, api, superadmin, share
 from app.security import is_allowed_origin, set_csrf_cookie, validate_csrf
+from app import security_guard as guard
 
 load_dotenv()
 
@@ -121,6 +122,40 @@ async def security_middleware(request: Request, call_next):
     ):
         secure_url = request.url.replace(scheme="https")
         return RedirectResponse(str(secure_url), status_code=307)
+
+    # ───── Protecao contra acessos/trafego suspeito ─────
+    # Healthcheck do Railway e webhooks (Stripe) ficam de fora: nunca devem ser
+    # bloqueados, banidos ou throttled.
+    path = request.url.path
+    if path != "/health" and not path.startswith("/webhooks/"):
+        request_ip = guard.client_ip(request)
+
+        ttl = guard.banned_ttl(request_ip)
+        if ttl is not None:
+            return JSONResponse(
+                {"detail": "Acesso temporariamente bloqueado por atividade suspeita."},
+                status_code=429,
+                headers={"Retry-After": str(ttl)},
+            )
+
+        user_agent = request.headers.get("user-agent", "")
+        if guard.is_scanner_ua(user_agent):
+            guard.ban_ip(request_ip, guard.BAN_SCANNER_SECONDS, "scanner-ua")
+            return JSONResponse({"detail": "Acesso negado."}, status_code=403)
+
+        # Sondagem de caminhos sensiveis (.env, .git, *.php...) -> ban + 404.
+        if guard.is_honeypot_path(path):
+            guard.ban_ip(request_ip, guard.BAN_HONEYPOT_SECONDS, "honeypot")
+            return JSONResponse({"detail": "Nao encontrado."}, status_code=404)
+
+        # Flood / scraping agressivo de um mesmo IP.
+        if guard.over_global_limit(request_ip):
+            guard.ban_ip(request_ip, guard.BAN_FLOOD_SECONDS, "flood")
+            return JSONResponse(
+                {"detail": "Muitas requisicoes. Aguarde e tente novamente."},
+                status_code=429,
+                headers={"Retry-After": str(guard.GLOBAL_IP_WINDOW)},
+            )
 
     # Limite de tamanho do corpo (anti-DoS). Webhooks (Stripe) ficam isentos.
     if request.method in {"POST", "PUT", "PATCH"} and not request.url.path.startswith("/webhooks/"):
