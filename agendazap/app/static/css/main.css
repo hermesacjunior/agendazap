@@ -379,7 +379,7 @@ a:hover { color: var(--accent-soft); }
 /* ============================================================================
    Formulários
    ========================================================================== */
-.form-group { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.form-group { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); min-width: 0; }
 
 label { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-muted); }
 
@@ -396,6 +396,9 @@ input:not([type="checkbox"]):not([type="radio"]), select, textarea {
   font-size: var(--text-base);
   transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
   width: 100%;
+  /* Permite encolher dentro de grid/flex (evita date/time estourar a borda no mobile) */
+  min-width: 0;
+  max-width: 100%;
 }
 
 input::placeholder, textarea::placeholder { color: var(--text-dim); }
@@ -987,8 +990,12 @@ tr:hover td { background: var(--bg-hover); }
     position: relative;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    /* Remove o atraso de ~300ms do toque e responde na hora */
+    touch-action: manipulation;
+    transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
   }
   .bottom-tabs .tab .tab-ico { font-size: 21px; line-height: 1; }
+  .bottom-tabs .tab:active { background: var(--bg-hover); }
   .bottom-tabs .tab.active { color: var(--accent-soft); }
   .bottom-tabs .tab::before {
     content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);

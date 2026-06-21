@@ -90,7 +90,7 @@
     <!-- Barra de abas inferior (apenas mobile) -->
     <nav class="bottom-tabs" aria-label="Navegação principal">
       <a href="/admin/dashboard" class="tab {% if request.url.path == '/admin/dashboard' %}active{% endif %}">
-        <span class="tab-ico">⊞</span><span class="tab-lbl">Início</span>
+        <span class="tab-ico">🏠</span><span class="tab-lbl">Início</span>
       </a>
       <a href="/admin/schedule" class="tab {% if '/schedule' in request.url.path %}active{% endif %}">
         <span class="tab-ico">📅</span><span class="tab-lbl">Agenda</span>
@@ -127,6 +127,19 @@
       // Fecha o drawer ao navegar por um link da nav
       sidebar.querySelectorAll('.nav-item').forEach(function (a) {
         a.addEventListener('click', function () { setOpen(false); });
+      });
+    })();
+
+    // Abas inferiores: marca a aba tocada como ativa na hora (sensacao de
+    // resposta imediata enquanto a proxima pagina carrega).
+    (function () {
+      var tabs = document.querySelectorAll('.bottom-tabs .tab');
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+          if (t.id === 'moreTab') return; // "Mais" abre o menu, nao navega
+          tabs.forEach(function (x) { x.classList.remove('active'); });
+          t.classList.add('active');
+        });
       });
     })();
 
