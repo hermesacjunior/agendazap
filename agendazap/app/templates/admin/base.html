@@ -86,6 +86,26 @@
     <main class="main-content">
       {% block content %}{% endblock %}
     </main>
+
+    <!-- Barra de abas inferior (apenas mobile) -->
+    <nav class="bottom-tabs" aria-label="Navegação principal">
+      <a href="/admin/dashboard" class="tab {% if request.url.path == '/admin/dashboard' %}active{% endif %}">
+        <span class="tab-ico">⊞</span><span class="tab-lbl">Início</span>
+      </a>
+      <a href="/admin/schedule" class="tab {% if '/schedule' in request.url.path %}active{% endif %}">
+        <span class="tab-ico">📅</span><span class="tab-lbl">Agenda</span>
+      </a>
+      <a href="/admin/bookings" class="tab {% if '/bookings' in request.url.path %}active{% endif %}">
+        <span class="tab-ico">📋</span><span class="tab-lbl">Marcações</span>
+      </a>
+      <a href="/admin/whatsapp" class="tab {% if '/whatsapp' in request.url.path %}active{% endif %}">
+        <span class="tab-ico">💬</span><span class="tab-lbl">WhatsApp</span>
+        {% if not user.whatsapp_connected %}<span class="tab-dot"></span>{% endif %}
+      </a>
+      <button type="button" id="moreTab" class="tab {% if '/plans' in request.url.path or '/profile' in request.url.path or '/admin/super' in request.url.path %}active{% endif %}" aria-controls="appSidebar" aria-label="Mais opções">
+        <span class="tab-ico">☰</span><span class="tab-lbl">Mais</span>
+      </button>
+    </nav>
   </div>
   {% block scripts %}{% endblock %}
   <script>
@@ -100,6 +120,8 @@
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       }
       toggle.addEventListener('click', function () { setOpen(!sidebar.classList.contains('open')); });
+      var moreTab = document.getElementById('moreTab');
+      if (moreTab) moreTab.addEventListener('click', function () { setOpen(!sidebar.classList.contains('open')); });
       overlay.addEventListener('click', function () { setOpen(false); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
       // Fecha o drawer ao navegar por um link da nav

@@ -863,6 +863,7 @@ tr:hover td { background: var(--bg-hover); }
 /* Topbar só aparece no mobile (escondida no desktop) */
 .admin-topbar { display: none; }
 .sidebar-overlay { display: none; }
+.bottom-tabs { display: none; }
 
 @media (max-width: 768px) {
   /* app-layout e flex-row no desktop; no mobile precisa empilhar para a
@@ -957,6 +958,52 @@ tr:hover td { background: var(--bg-hover); }
   .btn-sm { min-height: 38px; }
   .nav-item { padding: 12px; }
   .page-header { gap: var(--space-3); }
+
+  /* O hamburguer cede lugar à barra de abas inferior */
+  .topbar-toggle { display: none; }
+
+  /* Barra de abas inferior (estilo app nativo) */
+  .bottom-tabs {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: var(--z-sidebar);
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  }
+  .bottom-tabs .tab {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px;
+    min-height: 58px;
+    padding: 7px 2px;
+    background: none; border: 0;
+    color: var(--text-dim);
+    font-family: var(--font-sans);
+    font-size: 10.5px; font-weight: var(--weight-semibold);
+    text-decoration: none;
+    position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bottom-tabs .tab .tab-ico { font-size: 21px; line-height: 1; }
+  .bottom-tabs .tab.active { color: var(--accent-soft); }
+  .bottom-tabs .tab::before {
+    content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 0; height: 3px; border-radius: 0 0 4px 4px; background: var(--accent);
+    transition: width var(--dur) var(--ease);
+  }
+  .bottom-tabs .tab.active::before { width: 30px; }
+  .bottom-tabs .tab-dot {
+    position: absolute; top: 8px; left: calc(50% + 9px);
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); border: 1.5px solid var(--bg-card);
+  }
+
+  /* Conteúdo não fica atrás da barra fixa */
+  .main-content { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* ============================================================================
