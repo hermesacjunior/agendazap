@@ -1,18 +1,34 @@
-"""Gera os PNGs do PWA (192/512 + apple-touch 180) a partir do mesmo desenho
-do icon.svg: fundo roxo full-bleed (seguro como maskable) + calendario e check
-brancos centrados na safe zone (~80%). Rode localmente:
+"""Gera os PNGs do PWA (192/512 + apple-touch 180) com o logo AZ: fundo com
+gradiente roxo full-bleed (seguro como maskable) e "AZ" branco em negrito
+centralizado. Rode localmente:
 
     venv/Scripts/python.exe scripts/gen_icons.py
 
 Os PNGs gerados sao commitados como assets estaticos; a producao nao precisa
 do Pillow.
 """
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 OUT_DIR = "app/static/icons"
-ACCENT_TOP = (91, 106, 248)    # #5b6af8
-ACCENT_BOT = (124, 91, 248)    # #7c5bf8
+ACCENT_TOP = (91, 106, 248)    # #5b6af8 (canto superior)
+ACCENT_BOT = (124, 58, 237)    # #7c3aed (canto inferior)
 WHITE = (255, 255, 255, 255)
+
+_FONT_CANDIDATES = [
+    "C:/Windows/Fonts/arialbd.ttf",
+    "C:/Windows/Fonts/segoeuib.ttf",
+    "arialbd.ttf",
+    "DejaVuSans-Bold.ttf",
+]
+
+
+def _load_font(px):
+    for path in _FONT_CANDIDATES:
+        try:
+            return ImageFont.truetype(path, px)
+        except Exception:
+            continue
+    return ImageFont.load_default()
 
 
 def _vertical_gradient(size, top, bottom):
@@ -27,42 +43,28 @@ def _vertical_gradient(size, top, bottom):
     return base.convert("RGBA")
 
 
-def _scaled(coord, size):
-    return coord * size / 512.0
-
-
-def draw_icon(size, transparent_bg=False):
-    if transparent_bg:
-        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        ImageDraw.Draw(img).rounded_rectangle(
-            [0, 0, size - 1, size - 1], radius=_scaled(110, size),
-            fill=ACCENT_TOP,
-        )
-    else:
-        img = _vertical_gradient(size, ACCENT_TOP, ACCENT_BOT)
-
+def draw_icon(size):
+    img = _vertical_gradient(size, ACCENT_TOP, ACCENT_BOT)
     draw = ImageDraw.Draw(img)
-    sw = max(2, int(_scaled(20, size)))           # stroke principal
-    cw = max(2, int(_scaled(26, size)))           # stroke do check
+    text = "AZ"
 
-    def s(v):
-        return _scaled(v, size)
+    # Ajusta o tamanho da fonte para o "AZ" ocupar ~56% da largura (dentro da
+    # safe zone de 80% exigida por icones maskable).
+    target_w = size * 0.56
+    px = int(size * 0.5)
+    font = _load_font(px)
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw = bbox[2] - bbox[0]
+    if tw > 0:
+        px = max(8, int(px * target_w / tw))
+        font = _load_font(px)
+        bbox = draw.textbbox((0, 0), text, font=font)
 
-    # Corpo do calendario (retangulo arredondado, contorno branco)
-    draw.rounded_rectangle(
-        [s(128), s(150), s(384), s(384)], radius=s(34),
-        outline=WHITE, width=sw,
-    )
-    # Linha do cabecalho
-    draw.line([(s(128), s(214)), (s(384), s(214))], fill=WHITE, width=sw)
-    # Argolas
-    draw.line([(s(190), s(128)), (s(190), s(172))], fill=WHITE, width=sw)
-    draw.line([(s(322), s(128)), (s(322), s(172))], fill=WHITE, width=sw)
-    # Check
-    draw.line(
-        [(s(196), s(300)), (s(236), s(340)), (s(320), s(248))],
-        fill=WHITE, width=cw, joint="curve",
-    )
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    x = (size - tw) / 2 - bbox[0]
+    y = (size - th) / 2 - bbox[1]
+    draw.text((x, y), text, font=font, fill=WHITE)
     return img
 
 
@@ -71,8 +73,7 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     draw_icon(192).save(f"{OUT_DIR}/icon-192.png")
     draw_icon(512).save(f"{OUT_DIR}/icon-512.png")
-    # apple-touch: iOS aplica cantos arredondados sozinho -> fundo full-bleed,
-    # sem transparencia.
+    # apple-touch: iOS aplica cantos arredondados sozinho -> fundo full-bleed.
     draw_icon(180).convert("RGB").save(f"{OUT_DIR}/apple-touch-icon.png")
     print("Gerados: icon-192.png, icon-512.png, apple-touch-icon.png em", OUT_DIR)
 

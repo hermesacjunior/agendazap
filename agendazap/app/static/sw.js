@@ -8,14 +8,14 @@
        conteudo desatualizado ou de outra sessao.
      - Todo o resto (POST, JSON de API, cross-origin) -> direto para a rede.
 */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const STATIC_CACHE = 'az-static-' + VERSION;
 const PRECACHE = [
   '/static/css/main.css?v=4',
   '/static/manifest.webmanifest',
-  '/static/icons/icon-192.png',
-  '/static/icons/icon-512.png',
-  '/static/icons/icon.svg',
+  '/static/icons/icon-192.png?v=2',
+  '/static/icons/icon-512.png?v=2',
+  '/static/icons/icon.svg?v=2',
 ];
 
 const OFFLINE_HTML =
