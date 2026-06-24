@@ -73,3 +73,11 @@ async def create_tables():
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT true",
             ):
                 await conn.execute(text(ddl))
+
+            # Seguranca (Supabase): habilita Row-Level Security nas tabelas do
+            # schema public. O app conecta como 'postgres' (BYPASSRLS), entao
+            # nao e afetado; ja a API REST do Supabase (PostgREST via anon key)
+            # fica bloqueada por nao haver policies. Resolve o alerta
+            # "rls_disabled_in_public". ENABLE e idempotente.
+            for _table in ("users", "schedules", "bookings", "plans", "push_subscriptions"):
+                await conn.execute(text(f'ALTER TABLE public."{_table}" ENABLE ROW LEVEL SECURITY'))
