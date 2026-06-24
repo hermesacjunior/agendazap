@@ -21,7 +21,9 @@ class User(Base):
     email = Column(String(200), unique=True, nullable=False, index=True)
     hashed_password = Column(String(200), nullable=False)
     whatsapp = Column(String(20), nullable=True)
-    slug = Column(String(50), unique=True, nullable=False, index=True)
+    # unique=True ja cria um indice unico (users_slug_key); index=True criava um
+    # segundo identico (users_slug_idx) -> indice duplicado. Mantido so o unique.
+    slug = Column(String(50), unique=True, nullable=False)
     bio = Column(Text, nullable=True)
     # Foto de perfil como data URL (data:image/...;base64,...). Redimensionada
     # no cliente (<=256px) antes do upload, entao cabe no limite de corpo e
