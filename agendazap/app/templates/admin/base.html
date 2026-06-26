@@ -107,6 +107,21 @@
       </button>
     </nav>
   </div>
+
+  <!-- Instrucoes de instalacao no iOS (Safari nao dispara beforeinstallprompt) -->
+  <div id="iosInstallModal" onclick="if(event.target===this)this.style.display='none'"
+       style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(5,5,10,.6); align-items:flex-end; justify-content:center">
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:16px 16px 0 0; padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px)); max-width:440px; width:100%">
+      <h3 style="font-family:var(--font-display); margin:0 0 12px; font-size:18px">📲 Instalar o AgendaZap</h3>
+      <p class="text-sm text-muted" style="margin:0 0 16px">No iPhone/iPad, pelo Safari:</p>
+      <ol style="margin:0 0 20px; padding-left:20px; display:flex; flex-direction:column; gap:10px; font-size:14px">
+        <li>Toque em <strong>Compartilhar</strong> (ícone de quadrado com seta para cima, na barra do Safari).</li>
+        <li>Role e toque em <strong>“Adicionar à Tela de Início”</strong>.</li>
+        <li>Toque em <strong>“Adicionar”</strong> no canto superior.</li>
+      </ol>
+      <button type="button" class="btn btn-primary btn-full" onclick="document.getElementById('iosInstallModal').style.display='none'">Entendi</button>
+    </div>
+  </div>
   {% block scripts %}{% endblock %}
   <script>
     (function () {
@@ -155,16 +170,29 @@
       function show(visible) { btns.forEach(function (b) { b.style.display = visible ? '' : 'none'; }); }
       var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       if (standalone || !btns.length) return;
+
+      // iOS/iPadOS (Safari) nao dispara beforeinstallprompt: a instalacao e
+      // manual (Compartilhar > Adicionar a Tela de Inicio). Detecta para mostrar
+      // o botao com instrucoes. iPadOS 13+ se identifica como Mac com toque.
+      var ua = navigator.userAgent || '';
+      var isIOS = /iphone|ipad|ipod/i.test(ua) || (/Macintosh/i.test(ua) && 'ontouchend' in document);
+      var iosModal = document.getElementById('iosInstallModal');
+
       window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
         deferred = e;
         show(true);
       });
+      if (isIOS && iosModal) show(true);
+
       btns.forEach(function (b) {
         b.addEventListener('click', function () {
-          if (!deferred) return;
-          deferred.prompt();
-          deferred.userChoice.finally(function () { deferred = null; show(false); });
+          if (deferred) {
+            deferred.prompt();
+            deferred.userChoice.finally(function () { deferred = null; show(false); });
+          } else if (iosModal) {
+            iosModal.style.display = 'flex';
+          }
         });
       });
       window.addEventListener('appinstalled', function () { deferred = null; show(false); });
