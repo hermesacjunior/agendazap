@@ -9,6 +9,10 @@
   <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg?v=2">
   <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png?v=2">
   <meta name="apple-mobile-web-app-title" content="AgendaZap">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <style>
     :root { --wa: #25d366; --wa-dark: #128c7e; }
     body { background: var(--bg); color: var(--text); }
@@ -407,5 +411,6 @@
       <button type="button" class="btn btn-primary btn-full" onclick="document.getElementById('installModal').style.display='none'">Entendi</button>
     </div>
   </div>
+  <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </body>
 </html>

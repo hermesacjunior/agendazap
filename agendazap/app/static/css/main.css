@@ -109,6 +109,10 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Transicoes suaves entre paginas (sensacao de app nativo). Progressive
+   enhancement: navegadores sem suporte simplesmente navegam normal. */
+@view-transition { navigation: auto; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -1017,6 +1021,8 @@ tr:hover td { background: var(--bg-hover); }
    Acessibilidade: respeita "reduzir movimento"
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
+  /* Desliga o crossfade das transicoes de pagina para quem pede menos animacao */
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
