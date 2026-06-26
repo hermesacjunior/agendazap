@@ -10,7 +10,7 @@
 </div>
 
 <div class="alert alert-info">
-  🧹 Para manter o sistema leve, os agendamentos são <strong>excluídos automaticamente 7 dias após a data agendada</strong>. Anote ou exporte o que precisar guardar antes desse prazo.
+  🧹 Para manter o sistema leve, fazemos uma limpeza automática: agendamentos <strong>cancelados ou não confirmados</strong> são excluídos <strong>7 dias</strong> após a data, e o <strong>histórico de atendimentos</strong> é mantido por <strong>90 dias</strong> e então removido.
 </div>
 
 {% if request.query_params.get('created') %}<div class="alert alert-success">✅ Compromisso adicionado à sua agenda.</div>{% endif %}

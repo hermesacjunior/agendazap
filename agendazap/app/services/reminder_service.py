@@ -20,25 +20,43 @@ logger = logging.getLogger(__name__)
 APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
 
 
-BOOKING_RETENTION_DAYS = 7
+# Cancelados/nao confirmados sao "lixo": removidos logo apos a data.
+# Confirmados/concluidos sao historico do atendimento: mantidos por mais tempo.
+JUNK_RETENTION_DAYS = 7
+HISTORY_RETENTION_DAYS = 90
 
 
-async def purge_old_bookings(retention_days: int = BOOKING_RETENTION_DAYS) -> int:
-    """Remove agendamentos cuja data agendada ja passou ha mais de
-    `retention_days` dias. Mantem o banco enxuto (historico antigo nao e
-    necessario). Roda diariamente pelo scheduler. Retorna quantos removeu."""
-    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+async def purge_old_bookings() -> int:
+    """Limpeza diaria do banco, preservando o que o dono pode querer consultar:
+
+    - Agendamentos CANCELADOS ou PENDENTES sao removidos 7 dias apos a data
+      (sao desnecessarios e so ocupam espaco).
+    - Agendamentos CONFIRMADOS/CONCLUIDOS (historico de atendimentos) sao
+      mantidos por 90 dias e entao removidos.
+
+    Retorna o total de agendamentos removidos."""
+    now = datetime.utcnow()
+    junk_cutoff = now - timedelta(days=JUNK_RETENTION_DAYS)
+    history_cutoff = now - timedelta(days=HISTORY_RETENTION_DAYS)
     async with AsyncSessionLocal() as db:
         try:
-            result = await db.execute(
-                delete(Booking).where(Booking.start_datetime < cutoff)
+            junk = await db.execute(
+                delete(Booking).where(
+                    and_(
+                        Booking.start_datetime < junk_cutoff,
+                        Booking.status.in_([BookingStatus.cancelled, BookingStatus.pending]),
+                    )
+                )
+            )
+            history = await db.execute(
+                delete(Booking).where(Booking.start_datetime < history_cutoff)
             )
             await db.commit()
-            removed = result.rowcount or 0
+            removed = (junk.rowcount or 0) + (history.rowcount or 0)
             if removed:
                 logger.info(
-                    "purge_old_bookings: %s agendamentos anteriores a %s removidos",
-                    removed, cutoff.isoformat(),
+                    "purge_old_bookings: %s removidos (cancelados/pendentes>7d=%s, historico>90d=%s)",
+                    removed, junk.rowcount, history.rowcount,
                 )
             return removed
         except Exception:
