@@ -201,6 +201,14 @@ async def security_middleware(request: Request, call_next):
     )
     if request.url.path.startswith(("/admin", "/auth", "/plans")):
         response.headers.setdefault("Cache-Control", "no-store")
+    elif request.url.path.startswith("/static/"):
+        # Assets estaticos: cache forte. Versionados (?v=...) sao imutaveis (a URL
+        # muda quando o arquivo muda); os sem versao ficam 1 dia para evitar
+        # servir algo desatualizado por muito tempo.
+        response.headers.setdefault(
+            "Cache-Control",
+            "public, max-age=31536000, immutable" if request.url.query else "public, max-age=86400",
+        )
     if FORCE_HTTPS and request.url.hostname not in LOCAL_HOSTS:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     set_csrf_cookie(request, response)
