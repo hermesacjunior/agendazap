@@ -82,6 +82,19 @@ def get_available_slots(
         if b_start.date() == target_date or b_end.date() == target_date:
             booked_intervals.append((b_start, b_end))
 
+    # Horario de almoco: intervalo diario indisponivel (se ativado).
+    lunch_interval = None
+    if getattr(schedule, "lunch_break_enabled", False):
+        try:
+            ls_h, ls_m = map(int, (schedule.lunch_start or "12:00").split(":"))
+            le_h, le_m = map(int, (schedule.lunch_end or "14:00").split(":"))
+            lunch_start_dt = datetime.combine(target_date, time(ls_h, ls_m))
+            lunch_end_dt = datetime.combine(target_date, time(le_h, le_m))
+            if lunch_end_dt > lunch_start_dt:
+                lunch_interval = (lunch_start_dt, lunch_end_dt)
+        except (ValueError, AttributeError):
+            lunch_interval = None
+
     slots = []
     slot_duration = timedelta(minutes=schedule.slot_duration)
     buffer = timedelta(minutes=schedule.buffer_time)
@@ -108,7 +121,8 @@ def get_available_slots(
 
             slot_finish = current + slot_duration
             is_booked = any(bs < slot_finish and be > current for bs, be in booked_intervals)
-            if not is_booked and slot_str not in blocked_times:
+            in_lunch = lunch_interval is not None and current < lunch_interval[1] and slot_finish > lunch_interval[0]
+            if not is_booked and not in_lunch and slot_str not in blocked_times:
                 slots.append(slot_str)
 
             current += slot_duration + buffer

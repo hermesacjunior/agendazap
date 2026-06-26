@@ -159,6 +159,30 @@
 
     <input type="hidden" name="blocked" id="blockedField">
 
+    <!-- Horário de almoço -->
+    <div style="margin-bottom: var(--space-5); padding: var(--space-4); background: var(--bg-input); border-radius: var(--radius-sm)">
+      <div class="day-toggle">
+        <label class="toggle">
+          <input type="checkbox" name="lunch_break_enabled" id="lunchEnabled" value="1"
+            {% if schedule and schedule.lunch_break_enabled %}checked{% endif %} onchange="onLunchChange()">
+          <span class="toggle-slider"></span>
+        </label>
+        <label for="lunchEnabled" style="font-size: 14px; font-weight: 600; cursor: pointer">🍽️ Horário de almoço</label>
+      </div>
+      <p class="text-sm text-muted" style="margin: 10px 0 12px">
+        Quando ativado, esse intervalo fica <strong>indisponível para agendamento todos os dias</strong>. Padrão 12:00–14:00, mas você pode personalizar.
+      </p>
+      <div id="lunchTimes" class="day-times" style="{{ '' if (schedule and schedule.lunch_break_enabled) else 'opacity:0.4; pointer-events:none' }}">
+        <input type="time" name="lunch_start" id="lunchStart"
+          value="{{ schedule.lunch_start if schedule and schedule.lunch_start else '12:00' }}"
+          onchange="if (typeof renderDayPanel === 'function' && selectedDate) renderDayPanel()">
+        <span class="text-muted text-sm">até</span>
+        <input type="time" name="lunch_end" id="lunchEnd"
+          value="{{ schedule.lunch_end if schedule and schedule.lunch_end else '14:00' }}"
+          onchange="if (typeof renderDayPanel === 'function' && selectedDate) renderDayPanel()">
+      </div>
+    </div>
+
     <div class="block-grid">
       <div>
         <div class="cal-header">
@@ -253,6 +277,7 @@
                border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid var(--border, #2a2a2a);
                background: var(--bg-card, #161616); user-select: none; }
   .slot-chip.blocked { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border-color: rgba(239, 68, 68, 0.5); }
+  .slot-chip.lunch { background: rgba(251, 146, 60, 0.18); color: #fdba74; border-color: rgba(251, 146, 60, 0.45); cursor: not-allowed; }
   .slot-chip.disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 {% endblock %}
@@ -276,6 +301,25 @@ function toggleDay(day, enabled) {
   if (document.getElementById('calDays') && typeof renderCalendar === 'function') {
     renderCalendar(); if (selectedDate) renderDayPanel();
   }
+}
+
+// Horario de almoco: liga/desliga os campos e re-renderiza o painel do dia.
+function onLunchChange() {
+  const on = document.getElementById('lunchEnabled').checked;
+  const box = document.getElementById('lunchTimes');
+  if (box) { box.style.opacity = on ? '1' : '0.4'; box.style.pointerEvents = on ? 'auto' : 'none'; }
+  if (typeof renderDayPanel === 'function' && selectedDate) renderDayPanel();
+}
+
+// Intervalo de almoco em minutos [inicio, fim) lendo o estado atual do form,
+// ou null se desativado/invalido.
+function lunchRange() {
+  const cb = document.getElementById('lunchEnabled');
+  if (!cb || !cb.checked) return null;
+  const s = document.getElementById('lunchStart'), e = document.getElementById('lunchEnd');
+  if (!s || !e || !s.value || !e.value) return null;
+  const sm = toMin(s.value), em = toMin(e.value);
+  return em > sm ? [sm, em] : null;
 }
 
 // ===== Bloqueio de datas e horarios =====
@@ -377,7 +421,14 @@ function renderDayPanel() {
   } else {
     html += '<p style="font-size:13px;color:var(--text-muted);margin-top:16px;margin-bottom:0">Bloquear horários específicos:</p><div class="slot-grid">';
     const blockedSet = blocks.slots[selectedDate] || new Set();
+    const lunch = lunchRange();
+    const dur = parseInt((document.querySelector('[name="slot_duration"]') || {}).value) || 60;
     slots.forEach(t => {
+      const tm = toMin(t);
+      if (lunch && tm < lunch[1] && (tm + dur) > lunch[0]) {
+        html += '<div class="slot-chip lunch" title="Horário de almoço">' + t + ' 🍽️</div>';
+        return;
+      }
       const isBlocked = fullDay || blockedSet.has(t);
       html += '<div class="slot-chip' + (isBlocked ? ' blocked' : '') + (fullDay ? ' disabled' : '') + '" data-time="' + t + '">' + t + '</div>';
     });
@@ -391,7 +442,7 @@ function renderDayPanel() {
     syncField(); renderCalendar(); renderDayPanel();
   });
   if (!fullDay) {
-    panel.querySelectorAll('.slot-chip').forEach(chip => {
+    panel.querySelectorAll('.slot-chip:not(.lunch)').forEach(chip => {
       chip.addEventListener('click', () => {
         const t = chip.dataset.time;
         if (!blocks.slots[selectedDate]) blocks.slots[selectedDate] = new Set();

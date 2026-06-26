@@ -57,6 +57,15 @@ async def create_tables():
             await conn.execute(text(
                 "ALTER TABLE schedules ADD COLUMN IF NOT EXISTS share_token varchar(64)"
             ))
+            await conn.execute(text(
+                "ALTER TABLE schedules ADD COLUMN IF NOT EXISTS lunch_break_enabled boolean NOT NULL DEFAULT false"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE schedules ADD COLUMN IF NOT EXISTS lunch_start varchar(5) NOT NULL DEFAULT '12:00'"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE schedules ADD COLUMN IF NOT EXISTS lunch_end varchar(5) NOT NULL DEFAULT '14:00'"
+            ))
             for ddl in (
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_digest_enabled boolean NOT NULL DEFAULT false",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_digest_hour integer NOT NULL DEFAULT 7",

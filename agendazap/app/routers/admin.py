@@ -52,6 +52,11 @@ _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _TIME_RE = re.compile(r"^\d{2}:\d{2}$")
 
 
+def _clean_time(raw, default: str) -> str:
+    s = str(raw or "").strip()
+    return s if _TIME_RE.match(s) else default
+
+
 def _parse_blocked_field(raw) -> dict:
     """Valida o JSON de bloqueios vindo do formulario da agenda.
 
@@ -171,9 +176,12 @@ def _apply_schedule_form(schedule: Schedule, data, allow_blocks: bool = True) ->
                 "end": data.get(f"end_{day}", "18:00"),
             }]
     schedule.weekly_availability = availability
-    # Bloqueio de datas/horarios e recurso Pro.
+    # Bloqueio de datas/horarios e horario de almoco sao recursos Pro.
     if allow_blocks:
         schedule.blocked_dates = _parse_blocked_field(data.get("blocked"))
+        schedule.lunch_break_enabled = bool(data.get("lunch_break_enabled"))
+        schedule.lunch_start = _clean_time(data.get("lunch_start"), "12:00")
+        schedule.lunch_end = _clean_time(data.get("lunch_end"), "14:00")
 
 
 @router.get("/schedule", response_class=HTMLResponse)

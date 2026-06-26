@@ -25,6 +25,12 @@ class Schedule(Base):
     # Datas bloqueadas manualmente
     blocked_dates = Column(JSON, default=list)
 
+    # Horario de almoco: intervalo diario indisponivel para agendamento.
+    # Quando ativado, nenhum slot que cruze [lunch_start, lunch_end) aparece.
+    lunch_break_enabled = Column(Boolean, default=False, nullable=False, server_default="false")
+    lunch_start = Column(String(5), default="12:00", server_default="12:00")
+    lunch_end = Column(String(5), default="14:00", server_default="14:00")
+
     # Token para compartilhar uma visualizacao read-only desta agenda (sem
     # expor dados dos clientes). Nulo = nao compartilhada.
     share_token = Column(String(64), nullable=True, index=True)
