@@ -65,6 +65,10 @@
            class="nav-item">
           <span class="nav-icon">✉️</span> Suporte
         </a>
+        <a href="#" id="installNav" class="nav-item" style="display:none"
+           onclick="event.preventDefault(); var m=document.getElementById('iosInstallModal'); if (m) m.style.display='flex';">
+          <span class="nav-icon">📲</span> Instalar app
+        </a>
       </nav>
       <div class="sidebar-bottom">
         <button id="installBtn" class="btn btn-secondary btn-full" style="display:none; margin-bottom: var(--space-3)">⬇️ Instalar app</button>
@@ -112,13 +116,15 @@
   <div id="iosInstallModal" onclick="if(event.target===this)this.style.display='none'"
        style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(5,5,10,.6); align-items:flex-end; justify-content:center">
     <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:16px 16px 0 0; padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px)); max-width:440px; width:100%">
-      <h3 style="font-family:var(--font-display); margin:0 0 12px; font-size:18px">📲 Instalar o AgendaZap</h3>
-      <p class="text-sm text-muted" style="margin:0 0 16px">No iPhone/iPad, pelo Safari:</p>
-      <ol style="margin:0 0 20px; padding-left:20px; display:flex; flex-direction:column; gap:10px; font-size:14px">
-        <li>Toque em <strong>Compartilhar</strong> (ícone de quadrado com seta para cima, na barra do Safari).</li>
+      <h3 style="font-family:var(--font-display); margin:0 0 14px; font-size:18px">📲 Instalar o AgendaZap</h3>
+      <p class="text-sm" style="margin:0 0 6px; font-weight:600">No iPhone/iPad (Safari)</p>
+      <ol style="margin:0 0 18px; padding-left:20px; display:flex; flex-direction:column; gap:8px; font-size:14px">
+        <li>Toque em <strong>Compartilhar</strong> (ícone de quadrado com seta para cima ⬆️, na barra do Safari).</li>
         <li>Role e toque em <strong>“Adicionar à Tela de Início”</strong>.</li>
         <li>Toque em <strong>“Adicionar”</strong> no canto superior.</li>
       </ol>
+      <p class="text-sm" style="margin:0 0 6px; font-weight:600">No Android (Chrome)</p>
+      <p class="text-sm text-muted" style="margin:0 0 20px">Toque no botão <strong>Instalar</strong> quando aparecer, ou abra o menu <strong>⋮</strong> do navegador e escolha <strong>“Instalar aplicativo”</strong>.</p>
       <button type="button" class="btn btn-primary btn-full" onclick="document.getElementById('iosInstallModal').style.display='none'">Entendi</button>
     </div>
   </div>
@@ -170,6 +176,11 @@
       function show(visible) { btns.forEach(function (b) { b.style.display = visible ? '' : 'none'; }); }
       var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       if (standalone || !btns.length) return;
+
+      // Item fixo "Instalar app" no menu: sempre visivel enquanto nao instalado;
+      // abre o passo a passo (modal). O botao nativo (Android) atua a parte.
+      var installNav = document.getElementById('installNav');
+      if (installNav) installNav.style.display = '';
 
       // iOS/iPadOS (Safari) nao dispara beforeinstallprompt: a instalacao e
       // manual (Compartilhar > Adicionar a Tela de Inicio). Detecta para mostrar
