@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from html import escape
 
 import pytz
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, delete
 
 from app.database import AsyncSessionLocal
 from app.models.user import User
@@ -18,6 +18,33 @@ from app.services.push_service import notify_user
 
 logger = logging.getLogger(__name__)
 APP_URL = os.getenv("APP_URL", os.getenv("VITE_APP_URL", "https://www.agendazapuap.com.br")).rstrip("/")
+
+
+BOOKING_RETENTION_DAYS = 7
+
+
+async def purge_old_bookings(retention_days: int = BOOKING_RETENTION_DAYS) -> int:
+    """Remove agendamentos cuja data agendada ja passou ha mais de
+    `retention_days` dias. Mantem o banco enxuto (historico antigo nao e
+    necessario). Roda diariamente pelo scheduler. Retorna quantos removeu."""
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await db.execute(
+                delete(Booking).where(Booking.start_datetime < cutoff)
+            )
+            await db.commit()
+            removed = result.rowcount or 0
+            if removed:
+                logger.info(
+                    "purge_old_bookings: %s agendamentos anteriores a %s removidos",
+                    removed, cutoff.isoformat(),
+                )
+            return removed
+        except Exception:
+            logger.exception("Falha ao limpar agendamentos antigos")
+            await db.rollback()
+            return 0
 
 
 async def _today_items(db, user: User):

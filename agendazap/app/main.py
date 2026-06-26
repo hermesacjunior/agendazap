@@ -77,10 +77,12 @@ async def lifespan(app: FastAPI):
     if scheduler_on:
         # Resumo diario: roda no minuto 0 de cada hora; o servico decide quem
         # esta no horario escolhido (e nao reenvia no mesmo dia).
-        from app.services.reminder_service import run_daily_digests, run_appointment_reminders
+        from app.services.reminder_service import run_daily_digests, run_appointment_reminders, purge_old_bookings
         scheduler.add_job(run_daily_digests, CronTrigger(minute=0), id="daily_digests", replace_existing=True)
         # Lembretes por agendamento: verifica a cada 15 min quem entrou na janela.
         scheduler.add_job(run_appointment_reminders, CronTrigger(minute="*/15"), id="appt_reminders", replace_existing=True)
+        # Limpeza diaria: remove agendamentos 7 dias apos a data agendada.
+        scheduler.add_job(purge_old_bookings, CronTrigger(hour=4, minute=30), id="purge_old_bookings", replace_existing=True)
         scheduler.start()
     try:
         yield

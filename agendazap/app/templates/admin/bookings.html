@@ -9,6 +9,10 @@
   </div>
 </div>
 
+<div class="alert alert-info">
+  🧹 Para manter o sistema leve, os agendamentos são <strong>excluídos automaticamente 7 dias após a data agendada</strong>. Anote ou exporte o que precisar guardar antes desse prazo.
+</div>
+
 {% if request.query_params.get('created') %}<div class="alert alert-success">✅ Compromisso adicionado à sua agenda.</div>{% endif %}
 {% if request.query_params.get('err') == 'conflito' %}<div class="alert alert-error">Conflito de horário: já existe um agendamento nesse intervalo.</div>{% endif %}
 {% if request.query_params.get('err') == 'data' %}<div class="alert alert-error">Data ou hora inválida.</div>{% endif %}
