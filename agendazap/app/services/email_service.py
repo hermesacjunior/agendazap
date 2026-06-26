@@ -1,6 +1,7 @@
 import logging
 import os
-from html import escape
+import re
+from html import escape, unescape
 
 import httpx
 from dotenv import load_dotenv
@@ -11,6 +12,20 @@ load_dotenv()
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "AgendaZap <noreply@agendazapuap.com.br>")
+# Endereco de resposta real (opcional). Ter um reply-to valido ajuda a evitar spam.
+REPLY_TO = os.getenv("REPLY_TO", "").strip()
+
+
+def _html_to_text(html: str) -> str:
+    """Versao texto simples do e-mail. Enviar HTML + texto melhora a entrega
+    (filtros de spam penalizam mensagens so-HTML)."""
+    text = re.sub(r"(?i)</(p|div|h[1-6]|li|tr)>", "\n", html or "")
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = unescape(text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 def _is_configured(value: str, placeholder_prefixes: tuple[str, ...] = ()) -> bool:
@@ -24,7 +39,7 @@ def _field(data: dict, key: str, default: str = "") -> str:
     return escape(str(data.get(key) or default))
 
 
-async def send_email(to: str, subject: str, html: str) -> bool:
+async def send_email(to: str, subject: str, html: str, text: str | None = None) -> bool:
     if os.getenv("SAFE_MODE", "false").lower() == "true":
         logger.info("SAFE_MODE ativo: e-mail para %s nao enviado (%s)", to, subject)
         return True
@@ -32,22 +47,28 @@ async def send_email(to: str, subject: str, html: str) -> bool:
         logger.warning("RESEND_API_KEY nao configurado, email nao enviado")
         return False
 
+    payload = {
+        "from": FROM_EMAIL,
+        "to": [to],
+        "subject": subject,
+        "html": html,
+        # Parte texto sempre presente -> melhor pontuacao anti-spam.
+        "text": text or _html_to_text(html),
+    }
+    if REPLY_TO:
+        payload["reply_to"] = REPLY_TO
+
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
-                json={
-                    "from": FROM_EMAIL,
-                    "to": [to],
-                    "subject": subject,
-                    "html": html,
-                },
+                json=payload,
             )
             if response.status_code in {200, 201}:
                 return True
 
-            logger.error("Resend retornou status %s", response.status_code)
+            logger.error("Resend retornou status %s: %s", response.status_code, response.text[:300])
             return False
     except Exception as exc:
         logger.error("Erro ao enviar email: %s", exc)
