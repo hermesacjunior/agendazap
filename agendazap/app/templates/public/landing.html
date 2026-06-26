@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/static/css/main.css?v=4">
   <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg?v=2">
   <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png?v=2">
+  <meta name="apple-mobile-web-app-title" content="AgendaZap">
   <style>
     :root { --wa: #25d366; --wa-dark: #128c7e; }
     body { background: var(--bg); color: var(--text); }
@@ -384,9 +385,27 @@
         <a href="/auth/login">Entrar</a>
         <a href="/auth/register">Criar conta</a>
         <a href="#planos">Planos</a>
+        <a href="#" onclick="event.preventDefault(); document.getElementById('installModal').style.display='flex';">Instalar app</a>
       </div>
       <div>© 2026 AgendaZap · Agendamentos com WhatsApp</div>
     </div>
   </footer>
+
+  <!-- Instrucoes de instalacao (PWA) -->
+  <div id="installModal" onclick="if(event.target===this)this.style.display='none'"
+       style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(5,5,10,.7); align-items:center; justify-content:center; padding:16px">
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:24px 20px; max-width:440px; width:100%">
+      <h3 style="font-family:var(--font-display); margin:0 0 14px; font-size:18px">📲 Instalar o AgendaZap</h3>
+      <p style="margin:0 0 6px; font-weight:600; font-size:14px">No iPhone/iPad (Safari)</p>
+      <ol style="margin:0 0 18px; padding-left:20px; display:flex; flex-direction:column; gap:8px; font-size:14px; color:var(--text-muted)">
+        <li>Toque em <strong style="color:var(--text)">Compartilhar</strong> (ícone de quadrado com seta para cima ⬆️).</li>
+        <li>Role e toque em <strong style="color:var(--text)">“Adicionar à Tela de Início”</strong>.</li>
+        <li>Toque em <strong style="color:var(--text)">“Adicionar”</strong>.</li>
+      </ol>
+      <p style="margin:0 0 6px; font-weight:600; font-size:14px">No Android (Chrome)</p>
+      <p style="margin:0 0 20px; font-size:14px; color:var(--text-muted)">Abra o menu <strong style="color:var(--text)">⋮</strong> do navegador e escolha <strong style="color:var(--text)">“Instalar aplicativo”</strong>.</p>
+      <button type="button" class="btn btn-primary btn-full" onclick="document.getElementById('installModal').style.display='none'">Entendi</button>
+    </div>
+  </div>
 </body>
 </html>
