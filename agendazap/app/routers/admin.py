@@ -358,7 +358,16 @@ async def create_own_booking(
     time_str = str(data.get("time_str") or "")
     title = clean_text(data.get("title"), max_length=100, default="Compromisso")
     notes = clean_multiline(data.get("notes"), max_length=1000)
-    duration = clean_int(data.get("duration"), default=0, minimum=0, maximum=1440)
+    # Duracao informada em minutos ou horas (campo numerico + seletor de unidade).
+    raw_duration = str(data.get("duration") or "").replace(",", ".").strip()
+    duration_unit = str(data.get("duration_unit") or "min")
+    try:
+        amount = float(raw_duration) if raw_duration else 0.0
+    except ValueError:
+        amount = 0.0
+    if duration_unit == "hour":
+        amount *= 60
+    duration = int(min(max(amount, 0), 1440))
 
     # Resolve a agenda (precisa ser do proprio usuario).
     schedule = None
