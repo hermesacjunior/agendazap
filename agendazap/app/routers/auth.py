@@ -6,11 +6,9 @@ from sqlalchemy import select
 import re
 import uuid
 import os
-import secrets
 
 from app.database import get_db
 from app.models.user import User
-from app.models.schedule import Schedule
 from app.services.auth_service import (
     verify_password,
     get_password_hash,
@@ -26,7 +24,6 @@ from app.services.supabase_auth import send_password_recovery, supabase_is_confi
 from app.services.email_validation import validate_signup_email
 from app.services.email_service import send_account_verification
 from app.services import captcha
-from app.services import google_oauth
 from app.security import clean_phone, clean_text, install_template_security, require_csrf_token
 from app import security_guard as guard
 
@@ -36,7 +33,6 @@ install_template_security(templates)
 # Disponibiliza o estado do captcha para os templates (ex.: register.html).
 templates.env.globals["captcha_enabled"] = captcha.captcha_enabled
 templates.env.globals["captcha_site_key"] = captcha.captcha_site_key
-templates.env.globals["google_enabled"] = google_oauth.google_enabled
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "testserver"}
 APP_URL = os.getenv("APP_URL", "https://www.agendazapuap.com.br").rstrip("/")
 
@@ -125,104 +121,6 @@ async def login(
     return response
 
 
-@router.get("/google")
-async def google_login(request: Request):
-    if not google_oauth.google_enabled():
-        return RedirectResponse(url="/auth/login", status_code=302)
-    state = secrets.token_urlsafe(24)
-    redirect_uri = f"{APP_URL}/auth/google/callback"
-    response = RedirectResponse(url=google_oauth.authorization_url(state, redirect_uri), status_code=302)
-    # state guardado em cookie httponly: o callback compara para barrar CSRF.
-    response.set_cookie(
-        "g_oauth_state", state,
-        max_age=600, httponly=True, secure=cookie_secure(request), samesite="lax",
-    )
-    return response
-
-
-@router.get("/google/callback", response_class=HTMLResponse)
-async def google_callback(
-    request: Request,
-    code: str = "",
-    state: str = "",
-    error: str = "",
-    db: AsyncSession = Depends(get_db),
-):
-    if not google_oauth.google_enabled():
-        return RedirectResponse(url="/auth/login", status_code=302)
-
-    cookie_state = request.cookies.get("g_oauth_state")
-    if error or not code or not state or not cookie_state or not secrets.compare_digest(state, cookie_state):
-        return templates.TemplateResponse("auth/login.html", {
-            "request": request,
-            "error": "Não foi possível entrar com o Google. Tente novamente.",
-        })
-
-    redirect_uri = f"{APP_URL}/auth/google/callback"
-    token = await google_oauth.exchange_code(code, redirect_uri)
-    if not token or not token.get("access_token"):
-        return templates.TemplateResponse("auth/login.html", {
-            "request": request,
-            "error": "Falha ao validar o login do Google. Tente novamente.",
-        })
-
-    info = await google_oauth.fetch_userinfo(token["access_token"])
-    email = (info or {}).get("email", "").strip().lower()
-    if not info or not email or not info.get("email_verified"):
-        return templates.TemplateResponse("auth/login.html", {
-            "request": request,
-            "error": "Não foi possível obter um e-mail verificado do Google.",
-        })
-    name = clean_text(info.get("name") or email.split("@")[0], max_length=100) or "Cliente"
-
-    result = await db.execute(select(User).where(User.email == email))
-    user = result.scalar_one_or_none()
-
-    if user:
-        if not user.is_active or getattr(user, "is_blocked", False):
-            return templates.TemplateResponse("auth/login.html", {
-                "request": request,
-                "error": "Esta conta está bloqueada ou desativada.",
-            })
-        # Login pelo Google confirma o e-mail (Google ja verificou).
-        if not getattr(user, "email_verified", True):
-            user.email_verified = True
-            await db.commit()
-    else:
-        # Conta nova via Google: e-mail ja verificado, senha aleatoria (inutil;
-        # o usuario pode definir uma depois via "Esqueci minha senha").
-        user = User(
-            name=name,
-            email=email,
-            hashed_password=get_password_hash(secrets.token_urlsafe(32)),
-            slug=generate_slug(name),
-            email_verified=True,
-        )
-        db.add(user)
-        await db.flush()
-        db.add(Schedule(
-            user_id=user.id,
-            name=f"Agenda de {name}",
-            weekly_availability={
-                "0": [{"start": "09:00", "end": "18:00"}],
-                "1": [{"start": "09:00", "end": "18:00"}],
-                "2": [{"start": "09:00", "end": "18:00"}],
-                "3": [{"start": "09:00", "end": "18:00"}],
-                "4": [{"start": "09:00", "end": "18:00"}],
-            },
-        ))
-        await db.commit()
-
-    auth_token = create_access_token_for(user)
-    response = RedirectResponse(url="/admin/dashboard", status_code=302)
-    response.set_cookie(
-        "access_token", auth_token,
-        httponly=True, secure=cookie_secure(request), samesite="lax", max_age=604800,
-    )
-    response.delete_cookie("g_oauth_state", samesite="lax", secure=cookie_secure(request))
-    return response
-
-
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     return templates.TemplateResponse("auth/register.html", {"request": request})
@@ -304,7 +202,7 @@ async def register(
     await _send_verification_email(user)
     return templates.TemplateResponse("auth/login.html", {
         "request": request,
-        "success": f"Conta criada! Enviamos um link de confirmação para {email}. Confirme seu e-mail para entrar.",
+        "success": f"Conta criada! Enviamos um link de confirmação para {email}. Confirme para entrar — verifique também o Spam/Promoções. Não chegou? Use “Reenviar e-mail” abaixo.",
     })
 
 
@@ -348,6 +246,33 @@ async def confirm_email(request: Request, token: str = "", db: AsyncSession = De
         max_age=604800,
     )
     return response
+
+
+@router.get("/resend-confirmation", response_class=HTMLResponse)
+async def resend_confirmation_page(request: Request, email: str = ""):
+    return templates.TemplateResponse("auth/resend_confirmation.html", {"request": request, "email": email})
+
+
+@router.post("/resend-confirmation", response_class=HTMLResponse)
+async def resend_confirmation(
+    request: Request,
+    email: str = Form(...),
+    csrf_token: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+):
+    require_csrf_token(request, csrf_token)
+    email = email.strip().lower()
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    # So reenvia se a conta existe, esta ativa, nao bloqueada e ainda nao confirmada.
+    if user and user.is_active and not getattr(user, "is_blocked", False) and not getattr(user, "email_verified", True):
+        await _send_verification_email(user)
+    # Mensagem generica (nao revela se o e-mail existe ou ja foi confirmado).
+    return templates.TemplateResponse("auth/resend_confirmation.html", {
+        "request": request,
+        "email": email,
+        "success": "Se houver uma conta não confirmada com esse e-mail, enviamos um novo link. Verifique a caixa de entrada, o spam e as promoções.",
+    })
 
 
 @router.get("/forgot-password", response_class=HTMLResponse)

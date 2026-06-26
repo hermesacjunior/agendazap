@@ -55,6 +55,9 @@ def _rate_limit(request: Request) -> tuple[int, int] | None:
     if request.method == "POST":
         if path in {"/auth/login", "/auth/register", "/api/auth/login", "/api/auth/register"}:
             return (10, 15 * 60)
+        # Rotas que disparam e-mail: limite menor por IP para evitar abuso/spam.
+        if path in {"/auth/resend-confirmation", "/auth/forgot-password"}:
+            return (5, 15 * 60)
         if path.endswith("/book") and path.startswith("/b/"):
             return (20, 60)
         return None
